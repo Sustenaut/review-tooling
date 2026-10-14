@@ -1,0 +1,78 @@
+{
+ "id": "pub:sha2-256:qfmstpijjbdv4u4conts2vb6gnnipalkk55r2xx24ggf5srcas7a",
+ "created": "2026-10-14T12:00:00Z",
+ "finding": "groups-under",
+ "title": "LED shelf electricity per growing area and day",
+ "priority": 3,
+ "engine": {
+  "model": "claude (fake fixture)",
+  "version": "2026-10",
+  "prompt": "pub:sha2-256:ziu3kpnfzmhhy6ljhvkjryn52hys77fr6mubqs5xe3lwbir4fvtq",
+  "inputs": "pub:sha2-256:c2qo5mdzdnwjeri72kcn3h2ztyfh3pt7n27knyws2bwh65foyeja"
+ },
+ "target": "pub:sha2-256:6b6c4zttsnauahbpiwzwoayc6oe56ymqon4kfv3zbi4urljaxxoq",
+ "refs": [
+  "pub:sha2-256:6b6c4zttsnauahbpiwzwoayc6oe56ymqon4kfv3zbi4urljaxxoq",
+  "pub:sha2-256:yf7i3rrvqlytbxg5oqoep6pii7lwqp3ycetkg5vyihlsey6xg7ha",
+  "pub:sha2-256:ay6khok4pbgo7pwmxsltri7getaaow6uv4ud5jr7klx5cu66mdba",
+  "pub:sha2-256:vyrxiixlxvuxr3f2ntcqd3fe7rvjves2qm2pcdruro2i2maw24da"
+ ],
+ "candidate": {
+  "blob": "pub:sha2-256:r3tvly66vesc62fpbh3ezqmd5byh4olw6p3znmftqhwgz26zyowa",
+  "reason": "All four report electricity per growing area per day for leafy crops; the rooftop system uses daylight, so its figure measures a different system.",
+  "concept": {
+   "pdc": "628.9~1",
+   "name": "LED shelf electricity per growing area and day",
+   "kind": "pub:sha2-256:ukjqbql5i2tjgcefo4qwz2cbkzra5nfqv3l6wrr5v35ea5sqsswa",
+   "kind_name": "energy per area and time",
+   "unit": "kW.h/(m2.d)",
+   "includes": [
+    "Indoor shelves or racks lit only by LEDs",
+    "Electricity for lights, fans and pumps"
+   ],
+   "excludes": [
+    "Daylight greenhouses",
+    "Building heating",
+    "Transport and packaging"
+   ]
+  },
+  "members": [
+   {
+    "cid": "pub:sha2-256:6b6c4zttsnauahbpiwzwoayc6oe56ymqon4kfv3zbi4urljaxxoq",
+    "title": "Gargaro et al. 2025, vertical farm lettuce (fake)",
+    "locator": "inventory table",
+    "unit": "kW.h/(m2.d)",
+    "in": true,
+    "lead": false,
+    "why": "Reports LED shelf electricity per growing area and day."
+   },
+   {
+    "cid": "pub:sha2-256:yf7i3rrvqlytbxg5oqoep6pii7lwqp3ycetkg5vyihlsey6xg7ha",
+    "title": "Piovano et al. 2026, energy scenarios (fake)",
+    "locator": "scenario table",
+    "unit": "kW.h/(m2.d)",
+    "in": true,
+    "lead": false,
+    "why": "Same quantity, scenario figures."
+   },
+   {
+    "cid": "pub:sha2-256:ay6khok4pbgo7pwmxsltri7getaaow6uv4ud5jr7klx5cu66mdba",
+    "title": "Sandison et al. 2022, review (fake)",
+    "locator": "table 3",
+    "unit": "kW.h/(m2.d)",
+    "in": true,
+    "lead": true,
+    "why": "Quoted from another study; read the source first."
+   },
+   {
+    "cid": "pub:sha2-256:vyrxiixlxvuxr3f2ntcqd3fe7rvjves2qm2pcdruro2i2maw24da",
+    "title": "Diehl & Cheng 2025, rooftop basil (fake)",
+    "locator": "results",
+    "unit": "kW.h/(m2.d)",
+    "in": false,
+    "lead": false,
+    "why": "Rooftop under daylight, not an LED shelf."
+   }
+  ]
+ }
+}

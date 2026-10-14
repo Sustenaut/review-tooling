@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ s.title }}{% endblock %}
+{% block main %}
+{% set c = s.candidate %}
+<p class="eyebrow">Suggested by {{ s.engine.model }} {{ s.engine.version }} (automated) · {{ s.created }} · <code>{{ s.finding }}</code></p>
+<h1>{{ s.title }}</h1>
+<p class="state state-{{ state }}">{{ actions.get(state, "Open") }}</p>
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+{% if s.finding == "quoted-from" %}
+<p>The figure in <a href="{{ href(s.target) }}">{{ c.target_title or label(s.target) or s.target }}</a> looks quoted from <a href="{{ href(c.primary) }}">{{ c.primary_title or label(c.primary) or c.primary }}</a>, so pooling should count it once.</p>
+<p class="why">{{ c.reason }}</p>
+<form method="post" class="actions">
+  <button name="action" value="agree" class="primary">Agree and sign</button>
+  <label>Why not <textarea name="reason" rows="2"></textarea></label>
+  <button name="action" value="reject">Not the same</button>
+  <button name="action" value="defer">Not sure yet</button>
+</form>
+{% else %}
+{% set draft = c.concept %}
+<form method="post">
+<div class="cols">
+  <section>
+    <h2>Members</h2>
+    <p class="hint">For each extract: in this concept, in the second concept (when splitting), or outside both.</p>
+    {% for m in c.members %}
+    <fieldset class="member">
+      <legend><a href="{{ href(m.cid) }}">{{ m.title or label(m.cid) or m.cid }}</a>
+        {% if m.lead %}<span class="chip lead">lead</span>{% else %}<span class="chip read">read</span>{% endif %}</legend>
+      <small>{{ m.locator }}{% if m.unit %} · {{ m.unit }}{% endif %}</small>
+      {% if m.why %}<small class="why">{{ m.why }}</small>{% endif %}
+      {% set chosen = (form or {}).get("member-" ~ loop.index0, ["a" if m.in else "out"])[0] %}
+      <label><input type="radio" name="member-{{ loop.index0 }}" value="a" {% if chosen == "a" %}checked{% endif %}> in</label>
+      <label><input type="radio" name="member-{{ loop.index0 }}" value="b" {% if chosen == "b" %}checked{% endif %}> in the second</label>
+      <label><input type="radio" name="member-{{ loop.index0 }}" value="out" {% if chosen == "out" %}checked{% endif %}> outside</label>
+    </fieldset>
+    {% endfor %}
+  </section>
+  <section>
+    <h2>Concept</h2>
+    <label>Name <input name="name" value="{{ (form or {}).get('name', [draft.name])[0] }}"></label>
+    <label>PDC code <input name="pdc" value="{{ (form or {}).get('pdc', [draft.pdc])[0] }}"></label>
+    <p>Kind: {{ draft.kind_name or label(draft.kind) or draft.kind }}{% if draft.unit %} · <code>{{ draft.unit }}</code>{% endif %}</p>
+    <label>Includes, one line each <textarea name="includes" rows="4">{{ (form or {}).get('includes', [draft.includes | join('\n')])[0] }}</textarea></label>
+    <label>Excludes, one line each <textarea name="excludes" rows="4">{{ (form or {}).get('excludes', [draft.excludes | join('\n')])[0] }}</textarea></label>
+    <p class="why">Why grouped: {{ c.reason }}</p>
+    <details>
+      <summary>Second concept, for a split</summary>
+      <label>Name <input name="name-2" value="{{ (form or {}).get('name-2', [''])[0] }}"></label>
+      <label>PDC code <input name="pdc-2" value="{{ (form or {}).get('pdc-2', [''])[0] }}"></label>
+      <label>Includes <textarea name="includes-2" rows="3">{{ (form or {}).get('includes-2', [''])[0] }}</textarea></label>
+      <label>Excludes <textarea name="excludes-2" rows="3">{{ (form or {}).get('excludes-2', [''])[0] }}</textarea></label>
+    </details>
+    <details>
+      <summary>Not the same, or not sure</summary>
+      <label>Why the grouping is wrong <textarea name="reason" rows="3"></textarea></label>
+      <label>Note for later <textarea name="note" rows="2"></textarea></label>
+    </details>
+  </section>
+</div>
+<div class="actions">
+  <button name="action" value="agree" class="primary">Agree and sign</button>
+  <button name="action" value="edit">Edit and sign</button>
+  <button name="action" value="split">Split</button>
+  <button name="action" value="reject">Not the same</button>
+  <button name="action" value="defer">Not sure yet</button>
+</div>
+<p class="hint">"Agree and sign" signs the concept and members as suggested. "Edit and sign" signs the form as it stands. Signing makes publets in your name: a concept definition and one membership per member ({{ assurance }}).</p>
+</form>
+{% endif %}
+
+{% if history %}
+<h2>Reviews</h2>
+<ul class="history">
+{% for r in history %}
+  <li>{{ r.created }}: {{ actions[r.action] }}{% if r.key %} by key <code>{{ r.key[-12:] }}</code> ({{ r.assurance }}){% endif %}
+    {% for c in r.concepts %} · <a href="/concept/{{ quote(c.pdc) }}">{{ c.name }}</a>{% endfor %}
+    {% if r.changes %}<br><small>changed from the suggestion: {{ r.changes.keys() | join(", ") }}</small>{% endif %}</li>
+{% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

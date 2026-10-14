@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Queue{% endblock %}
+{% block main %}
+<h1>Suggestions to review</h1>
+<p class="lede">Each is a machine's guess about which extracts measure one concept, or which figure is quoted from another. Open ones come first.</p>
+<table class="rows">
+  <thead><tr><th>Suggestion</th><th>Finding</th><th>Suggested by</th><th>State</th></tr></thead>
+  <tbody>
+  {% for row in rows %}
+    <tr>
+      <td><a href="/s/{{ quote(row.id, safe='') }}">{{ row.title }}</a></td>
+      <td><code>{{ row.finding }}</code></td>
+      <td>{{ row.engine.model }} {{ row.engine.version }}</td>
+      <td class="state state-{{ row.status }}">{{ actions.get(row.status, "Open") }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4">No suggestions yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<h2>How often suggestions are overturned</h2>
+<p>Spec Section 7.4 asks for this rate. A low rate may mean rejecting costs too much, not that the suggester is right.</p>
+<ul>
+{% for engine, (rejected, decided) in rates.items() %}
+  <li>{{ engine }}: {{ rejected }} of {{ decided }} decided suggestions rejected</li>
+{% else %}
+  <li>Nothing decided yet.</li>
+{% endfor %}
+</ul>
+{% endblock %}

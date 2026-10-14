@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}PDC {{ pdc }}{% endblock %}
+{% block main %}
+<p class="eyebrow">Concept at PDC {{ pdc }}</p>
+<h1>{{ versions[-1].name if versions else pdc }}</h1>
+{% if contested %}<p class="error">Contested: more than one concept is signed at this code. Each is shown; a PDC edition or the code's expert group picks one.</p>{% endif %}
+{% for v in versions | reverse %}
+<section class="version">
+  <h2><a href="{{ href(v.cid) }}">{{ v.name }}</a></h2>
+  <p class="meta">Signed {{ v.review.created }} by key <code>{{ v.review.key[-12:] }}</code> ({{ v.review.assurance }}) · <a href="/s/{{ quote(v.review.suggestion, safe='') }}">from this suggestion</a></p>
+  <p><b>Includes</b></p><ul>{% for l in v.includes %}<li>{{ l }}</li>{% endfor %}</ul>
+  {% if v.excludes %}<p><b>Excludes</b></p><ul>{% for l in v.excludes %}<li>{{ l }}</li>{% endfor %}</ul>{% endif %}
+  <p><b>Members</b></p><ul>{% for m in v.members %}<li><a href="{{ href(m) }}">{{ label(m) or m }}</a></li>{% endfor %}</ul>
+</section>
+{% else %}
+<p>No concept is signed at this code yet.</p>
+{% endfor %}
+{% endblock %}

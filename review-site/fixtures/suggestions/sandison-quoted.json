@@ -1,0 +1,24 @@
+{
+ "id": "pub:sha2-256:5s2lhnt63igy3jfaufjyqdgmathsw4434hyuj77b2xzwmcyr73ga",
+ "created": "2026-10-14T12:05:00Z",
+ "finding": "quoted-from",
+ "title": "Sandison et al. 2022 quotes Gargaro et al. 2025's figure",
+ "priority": 2,
+ "engine": {
+  "model": "claude (fake fixture)",
+  "version": "2026-10",
+  "prompt": "pub:sha2-256:ziu3kpnfzmhhy6ljhvkjryn52hys77fr6mubqs5xe3lwbir4fvtq",
+  "inputs": "pub:sha2-256:c2qo5mdzdnwjeri72kcn3h2ztyfh3pt7n27knyws2bwh65foyeja"
+ },
+ "target": "pub:sha2-256:ay6khok4pbgo7pwmxsltri7getaaow6uv4ud5jr7klx5cu66mdba",
+ "refs": [
+  "pub:sha2-256:6b6c4zttsnauahbpiwzwoayc6oe56ymqon4kfv3zbi4urljaxxoq"
+ ],
+ "candidate": {
+  "blob": "pub:sha2-256:of2k4kab7hoc4orpmfyjzulqv5d4pdvgtdgb36hoe6ga7rdpjqmq",
+  "primary": "pub:sha2-256:6b6c4zttsnauahbpiwzwoayc6oe56ymqon4kfv3zbi4urljaxxoq",
+  "target_title": "Sandison et al. 2022, review (fake)",
+  "primary_title": "Gargaro et al. 2025, vertical farm lettuce (fake)",
+  "reason": "The review's table 3 gives the same value and cites the primary study."
+ }
+}

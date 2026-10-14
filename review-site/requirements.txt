@@ -1,0 +1,8 @@
+# What the review service's image installs, pinned by ../requirements.lock
+# (pip install -r review-site/requirements.txt -c requirements.lock).
+fastapi
+uvicorn
+Jinja2
+google-auth
+requests  # google-auth's transport, and the Cloud Storage JSON API
+google-cloud-firestore  # the account-to-key links
