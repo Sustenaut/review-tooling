@@ -1,0 +1,63 @@
+# Build and deploy the review service (review.sustenaut.eu) on each merge to
+# main that touches it, or by hand. The service, its buckets and its rights come
+# from infra/review-site.tf, so `terraform apply` has to run before the first
+# deploy. Google credentials come from Workload Identity Federation
+# (infra/notebooks.tf): no keys are stored in GitHub.
+name: review site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "review-site/**"
+      - "publication-0/objects/**"
+      - "requirements.lock"
+      - ".github/workflows/review-site.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: review-site
+  cancel-in-progress: false
+
+env:
+  REGION: europe-north1
+  IMAGE: europe-north1-docker.pkg.dev/sustenaut/review-site/review-site
+  WIF_PROVIDER: projects/948171295184/locations/global/workloadIdentityPools/github/providers/github
+  DEPLOYER: sustenaut-deployer@sustenaut.iam.gserviceaccount.com
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOYER }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      # pub is built from publet at the commit pinned in the Dockerfile.
+      - name: Build the image
+        run: |
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker build -f review-site/Dockerfile -t "${IMAGE}:${GITHUB_SHA}" .
+
+      # The image must start and answer its health check before it is pushed.
+      - name: Start the image
+        run: |
+          docker run -d --name site -p 8080:8080 "${IMAGE}:${GITHUB_SHA}"
+          for i in $(seq 1 30); do curl -fs localhost:8080/healthz && break; sleep 1; done
+          curl -fs localhost:8080/healthz
+          docker rm -f site
+
+      - name: Push the image
+        run: docker push "${IMAGE}:${GITHUB_SHA}"
+
+      - name: Deploy
+        run: gcloud run deploy review-site --image "${IMAGE}:${GITHUB_SHA}" --region "${REGION}" --quiet
