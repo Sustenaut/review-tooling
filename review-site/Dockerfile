@@ -4,10 +4,10 @@
 # the service checks its signature (review-site/review/auth.py).
 
 # pub signs reviews and bundles publication 0 for names. It is pinned by
-# commit: schryer/publet#49's head, which adds the concept sort. Move it to
-# main, then to a release tag, once #49 merges.
+# commit: schryer/publet main after #49 merged, which adds the concept sort.
+# Move it to a release tag once one carries the concept sort.
 FROM docker.io/library/rust:1-slim AS pub
-ARG PUBLET_REV=dcee145ca813855f71e2163edc8f5879a7b437ff
+ARG PUBLET_REV=a48d3639063e8cb732292f5025d84be83d1b59f5
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 RUN git clone https://github.com/schryer/publet.git /publet \
