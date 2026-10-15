@@ -74,5 +74,8 @@ that knows the `concept` sort (schryer/publet#49). The suggestions in
 append-only bucket, the keys bucket, the service account and the domain
 mapping. After `./with-secrets terraform -chdir=infra apply`, run
 `./with-secrets infra/iap-oauth.sh` to give its login the OAuth client. The
-`review` DNS record goes in schryer/schryer-eu-infra. The image builds
-`pub` from publet at a pinned commit (`Dockerfile`, `PUBLET_REV`).
+`review` DNS record goes in schryer/schryer-eu-infra. Then
+`.github/workflows/review-site.yml` builds, checks and deploys the image on
+each merge to main that touches the service, or when run by hand
+(`gh workflow run "review site"`). The image builds `pub` from publet at a
+pinned commit (`Dockerfile`, `PUBLET_REV`).
