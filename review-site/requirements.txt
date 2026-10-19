@@ -6,3 +6,4 @@ Jinja2
 google-auth
 requests  # google-auth's transport, and the Cloud Storage JSON API
 google-cloud-firestore  # the account-to-key links
+itsdangerous  # the wallet sign-in's signed session cookie

@@ -17,10 +17,11 @@ from review import auth, bundles, keys, reviews, signer, store
 HERE = Path(__file__).resolve().parent
 templates = Environment(loader=FileSystemLoader(HERE / "templates"), autoescape=select_autoescape())
 templates.globals.update(label=bundles.label, href=bundles.href, actions=reviews.ACTIONS,
-                         assurance=auth.ASSURANCE, quote=quote)
+                         wallet_offered=auth.wallet_offered, quote=quote)
 
 app = FastAPI(title="Sustenaut reviews", docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
+app.include_router(auth.router)  # /login, /auth/callback, /logout: the wallet sign-in
 
 
 class Services:

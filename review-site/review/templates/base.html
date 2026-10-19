@@ -9,7 +9,11 @@
 <body>
 <header class="top">
   <a class="brand" href="/">Sustenaut reviews</a>
-  <span class="who">{{ who.email }} · {{ assurance }}</span>
+  <span class="who">{{ who.label }} · {{ who.assurance }}
+  {%- if wallet_offered() %}
+    {%- if who.login == "wallet" %} · <a href="/logout">Sign out</a>
+    {%- else %} · <a href="/login">Sign in with your EU wallet</a>{% endif %}
+  {%- endif %}</span>
 </header>
 <main>
 {% block main %}{% endblock %}

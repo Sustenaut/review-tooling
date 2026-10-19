@@ -32,19 +32,30 @@ come from the service's own pages (its `Origin` is checked).
 
 ## Identity and signing, for now
 
-- **Who:** the IAP-verified Google account on the team list (`review/auth.py`).
-- **Key:** the service holds one key per reviewer, made the first time
-  they sign (`review/signer.py`, through the `pub` CLI). The key's secret
-  is in its own bucket. The link from the account to the key is in its own
-  Firestore collection, `review_key_links`, which can be deleted without
-  touching any publet. Publets never carry the email.
-- **Assurance:** every review is marked **"team login, key held by
-  Sustenaut"**.
+`REVIEW_LOGIN` picks the login (`review/auth.py`):
 
-The shared sign-in (Keycloak, wallet-first) is built in its own thread. It
-replaces `auth.reviewer` and `signer.HeldKeySigner`, behind the same
-`Reviewer` and `Signer` interfaces. A wallet-signed attestation can then
-vouch for a person's own key.
+- `iap`: the IAP-verified Google account on the team list.
+- `wallet`: the shared sign-in at auth.sustenaut.eu (Keycloak, EU Digital
+  Identity Wallet only), as the OpenID Connect client `review`: `/login` sends
+  the browser there (code flow with PKCE), `/auth/callback` checks the ID token
+  Keycloak signs, and a signed session cookie keeps the account for 12 hours.
+  `/logout` ends that session and Keycloak's (single sign-out).
+- `iap+wallet` (what review.sustenaut.eu runs now): IAP still decides who gets
+  in at all; a team member may then sign in with a wallet, and reviews they sign
+  from then on are the wallet account's. When wallets are issued, the setting
+  becomes `wallet` and IAP comes off.
+
+- **Key:** the service holds one key per reviewer, made the first time they
+  sign (`review/signer.py`, through the `pub` CLI). The key's secret is in its
+  own bucket. The link from the account (the email, or `wallet:<Keycloak id>`)
+  to the key is in its own Firestore collection, `review_key_links`, which can
+  be deleted without touching any publet. Publets never carry the email or the
+  name.
+- **Assurance:** every review records how its signer signed in: **"team login,
+  key held by Sustenaut"** or **"EU wallet sign-in, key held by Sustenaut"**.
+
+A wallet-signed attestation can later vouch for a person's own key, replacing
+the held key behind the same `Signer` interface.
 
 ## Storage
 
