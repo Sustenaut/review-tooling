@@ -61,7 +61,7 @@ class HeldKeySigner:
     def _workspace(self, reviewer: Reviewer, root: Path, created: str) -> tuple[str, bool]:
         """A workspace signing as the reviewer's key: (key CID, whether the key is new)."""
         self._run(root, "init")
-        key = self.links.key_for(reviewer.email)
+        key = self.links.key_for(reviewer.account)
         seed = self.secrets.get(key) if key else None
         if key and seed:
             (root / ".publet" / "signing.key").write_text(seed + "\n")
@@ -77,7 +77,7 @@ class HeldKeySigner:
             raise PubError(f"pub sign --generate-key: {out.stderr.strip()}")
         key = next(line.split()[1] for line in out.stdout.splitlines() if line.startswith("key "))
         self.secrets.put(key, (root / ".publet" / "signing.key").read_text().strip())
-        self.links.link(reviewer.email, key)
+        self.links.link(reviewer.account, key)
         return key, True
 
     def sign(self, reviewer: Reviewer, drafts: list[Draft], created: str) -> Signed:

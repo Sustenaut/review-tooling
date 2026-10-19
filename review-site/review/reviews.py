@@ -6,7 +6,7 @@ from collections import Counter
 from datetime import datetime, timezone
 
 from review import drafts as d
-from review.auth import ASSURANCE, Reviewer
+from review.auth import Reviewer
 from review.signer import Signer
 from review.store import Exists, Store, object_path, read_json
 
@@ -161,7 +161,7 @@ def record(store: Store, signer: Signer, reviewer: Reviewer, s: dict, action: st
             c["cid"] = refs.get(c["ref"])
     review = {
         "suggestion": s["id"], "action": action, "created": created,
-        "key": key, "assurance": ASSURANCE if key else None, "login": reviewer.login,
+        "key": key, "assurance": reviewer.assurance if key else None, "login": reviewer.login,
         "made": made, "concepts": framed, "changes": changes,
     }
     name = f"reviews/{created.replace(':', '')}-{s['id'].rsplit(':', 1)[-1][:12]}-{action}.json"

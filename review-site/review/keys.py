@@ -2,7 +2,8 @@
 
 Two things are kept apart so either can be deleted on its own:
 
-- the **link** from an account (an email) to the CID of the key it signs
+- the **link** from an account (an email for the team login, ``wallet:<id>`` for the
+  wallet sign-in) to the CID of the key it signs
   with, in its own table (Firestore collection `review_key_links`). This is
   the only place a person's identity meets their key; deleting the link
   leaves the signed publets standing, attributed to a key no one can name;
