@@ -1,4 +1,4 @@
-"""python -m tools.facts gather | get PATH | lint (see tools/facts/__init__.py)."""
+"""python -m tools.facts gather [--adopt] | check | get PATH | lint (see tools/facts/__init__.py)."""
 
 from __future__ import annotations
 
@@ -19,6 +19,20 @@ def main(argv: list[str]) -> int:
             from tools.facts.gather import pub_binary
 
             return subprocess.run([pub_binary(), "get", path, f"--dir={facts.OBJECTS}"]).returncode
+        case ["gather", "--adopt"]:
+            from tools.facts import gather
+
+            gather.gather(sign=False)
+            return 0
+        case ["check"]:
+            from tools.facts import gather
+
+            problems = gather.check()
+            for problem in problems:
+                print(problem)
+            print(f"{len(problems)} problem(s): run `make gather`" if problems
+                  else "corpus/ agrees with the registry")
+            return 1 if problems else 0
         case ["lint"]:
             found = facts.lint(facts.registry())
             for d in found:
