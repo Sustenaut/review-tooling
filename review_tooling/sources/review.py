@@ -28,7 +28,7 @@ from pathlib import Path
 from tools import sources
 
 READER = "reader.david"
-EDITABLE = ("value", "unit", "locator", "quote", "printed")
+EDITABLE = ("value", "unit", "quantity", "locator", "quote", "printed")
 
 
 def rows(reg: dict) -> list[dict]:
@@ -57,6 +57,13 @@ def apply(reg: dict, ident: str, finding: str | None, edits: dict | None = None,
             extract.pop("printed", None)
             continue
         extract[key] = value
+    if "unit" in (edits or {}):
+        # A unit its kind does not list moves the extract to the one kind that does.
+        kinds = [d["id"] for d in reg["definitions"] if d["defines"]["sort"] == "kind"
+                 and extract["unit"] in d["defines"].get("units", [])]
+        current = next(d for d in reg["definitions"] if d["id"] == extract["kind"])
+        if extract["unit"] not in current["defines"].get("units", []) and len(kinds) == 1:
+            extract["kind"] = kinds[0]
     extract["checked"] = None if finding is None else {
         "by": READER, "at": today or dt.date.today().isoformat(), "finding": finding}
     problems = [str(p) for p in sources.lint(reg) if p.id == ident]
@@ -99,6 +106,7 @@ form{display:none;gap:6px}form.open{display:grid}input,textarea{font:inherit;pad
  </div>
  <form id=edit onsubmit="event.preventDefault();mark('affirm',edits())">
   <label>Value <input id=f-value></label><label>Unit <input id=f-unit></label>
+  <label>Quantity <input id=f-quantity></label>
   <label>Locator <input id=f-locator></label><label>Quote <textarea id=f-quote rows=3></textarea></label>
   <label>Printed as (when the quote writes the value differently) <input id=f-printed></label>
   <button class=primary>Save and affirm</button>
@@ -122,10 +130,10 @@ function show(){const r=rows[i];if(!r)return;const done=rows.filter(x=>x.checked
  <dt>Scope</dt><dd>${esc(r.scope)}</dd>${r.scenario_text?`<dt>Scenario</dt><dd>${esc(r.scenario_text)}</dd>`:''}
  ${r.cites?`<dt>Cites</dt><dd>${esc(r.cites)}</dd>`:''}</dl><blockquote>${esc(r.quote)}</blockquote>`;
  $('pdf').src=`pdf/${r.sha}.pdf?x=${encodeURIComponent(r.id)}#page=${r.page}&view=FitH`;
- for(const k of ['unit','locator','quote','printed'])$('f-'+k).value=r[k]||'';$('f-value').value=Object.values(r.value).join(' ');
+ for(const k of ['unit','quantity','locator','quote','printed'])$('f-'+k).value=r[k]||'';$('f-value').value=Object.values(r.value).join(' ');
  $('list').innerHTML=rows.map((x,n)=>`<li class="${n==i?'cur':''}" onclick="i=${n};show()"><span class="${x.checked?x.checked.finding:x.status}">${x.checked?(x.checked.finding=='affirm'?'✓':'✗'):'·'}</span> ${esc(x.quantity)} — ${esc(shown(x.value))} ${esc(x.unit)}</li>`).join('');
  $('err').textContent=''}
-function edits(){const r=rows[i],e={};for(const k of ['unit','locator','quote','printed']){const v=$('f-'+k).value.trim();if(v!==(r[k]||''))e[k]=v}
+function edits(){const r=rows[i],e={};for(const k of ['unit','quantity','locator','quote','printed']){const v=$('f-'+k).value.trim();if(v!==(r[k]||''))e[k]=v}
  const v=$('f-value').value.trim(),keys=Object.keys(r.value),parts=v.split(/\\s+/);
  if(v!==Object.values(r.value).join(' ')){if(parts.length!=keys.length){$('err').textContent='give '+keys.join(', ');throw 0}e.value=Object.fromEntries(keys.map((k,n)=>[k,parts[n]]))}return e}
 function toggleEdit(){$('edit').classList.toggle('open')}
