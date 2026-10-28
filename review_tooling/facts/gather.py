@@ -240,6 +240,14 @@ class Workspace:
         path.write_text(json.dumps(value))
         return str(path)
 
+    def become(self, key: str, secret: str | None) -> None:
+        """Author as `key` from here on, signing with `secret` when given."""
+        if secret is not None:
+            (self.root / ".publet" / "signing.key").write_text(secret)
+        config = self.root / ".publet" / "config"
+        config.write_text("".join(f"author={key}\n" if line.startswith("author=") else line + "\n"
+                                  for line in config.read_text().splitlines()))
+
     def hold(self, objects: Path) -> None:
         """Put every committed object in the workspace's store, so what is
         composed is checked against them and can supersede them."""
@@ -257,11 +265,7 @@ def use_key(ws: Workspace, created: str, *, sign: bool = True) -> str:
     secret = key_path()
     if KEY_ID.exists() and (secret.exists() or not sign):
         key = KEY_ID.read_text().strip()
-        if sign:
-            (ws.root / ".publet" / "signing.key").write_text(secret.read_text())
-        config = ws.root / ".publet" / "config"
-        config.write_text("".join(f"author={key}\n" if line.startswith("author=") else line + "\n"
-                                  for line in config.read_text().splitlines()))
+        ws.become(key, secret.read_text() if sign else None)
         return key
     if KEY_ID.exists() or secret.exists():
         raise GatherError(f"{secret} and {KEY_ID} must both exist or neither: one is missing")
@@ -302,10 +306,10 @@ def compose(ws: Workspace, item: Item, cids: dict[str, str], created: str) -> st
     return ws.run(*args).split()[0]
 
 
-def withdraw(ws: Workspace, item_id: str, cid: str, created: str) -> list[str]:
+def withdraw(ws: Workspace, item_id: str, cid: str, created: str, registry_name: str = "The facts registry") -> list[str]:
     """Retract an object: a short claim saying why, and `retracts` from it."""
     why = ws.run("compose", f"--created={created}", "--class=normative", "--scope=unconditional",
-                 f"--content=The facts registry no longer states {item_id}.").split()[0]
+                 f"--content={registry_name} no longer states {item_id}.").split()[0]
     rel = ws.run("relate", f"--created={created}", "--kind=retracts", f"--from={why}", f"--to={cid}",
                  "--scope=unconditional").split()[0]
     return [why, rel]
@@ -375,16 +379,17 @@ COMMENT = ("Written by `make gather`; do not edit. For each registry item, the d
            "`python -m tools.facts check` compares it with the registry and the files.")
 
 
-def export(ws: Workspace) -> set[str]:
-    """Add the workspace's new objects to corpus/objects/, never removing one."""
+def export(ws: Workspace, objects: Path | None = None) -> set[str]:
+    """Add the workspace's new objects to `objects` (corpus/objects/), never removing one."""
+    objects = OBJECTS if objects is None else objects
     ws.run("bundle", f"--out={ws.root / 'export'}")
     exported = ws.root / "export" / "pub" / "v1" / "object"
     policy = next(line.split("=", 1)[1] for line in (ws.root / ".publet" / "config").read_text().splitlines()
                   if line.startswith("policy="))
-    OBJECTS.mkdir(parents=True, exist_ok=True)
+    objects.mkdir(parents=True, exist_ok=True)
     added = set()
     for path in sorted(exported.iterdir()):
-        target = OBJECTS / filename(path.name)
+        target = objects / filename(path.name)
         if path.name != policy and not target.exists():
             target.write_bytes(path.read_bytes())
             added.add(target.name)
