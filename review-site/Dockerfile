@@ -3,11 +3,11 @@
 # Cloud Run supplies PORT; IAP in front of the service handles the login and
 # the service checks its signature (review-site/review/auth.py).
 
-# pub signs reviews and bundles publication 0 for names. It is pinned by
-# commit: schryer/publet main after #49 merged, which adds the concept sort.
-# Move it to a release tag once one carries the concept sort.
+# pub signs reviews and bundles publication 0 and the paper extracts for
+# names. It is the publet-cli release the extracts were signed with
+# (FACTS_PUBLET_TAG in the Makefile), which carries the concept sort.
 FROM docker.io/library/rust:1-slim AS pub
-ARG PUBLET_REV=a48d3639063e8cb732292f5025d84be83d1b59f5
+ARG PUBLET_REV=v0.2.2
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 RUN git clone https://github.com/schryer/publet.git /publet \
@@ -16,9 +16,17 @@ RUN git clone https://github.com/schryer/publet.git /publet \
 WORKDIR /publet
 RUN cargo build --release --locked -p publet-cli
 
+# The paper extracts and what they cite, from storage.sustenaut.eu, so a
+# suggestion's members and a signed concept's members show by name.
+FROM python:3.14-slim AS sources
+COPY corpus/sources/gathered.json /gathered.json
+RUN mkdir /sources && python -c 'import json, urllib.request; \
+    [urllib.request.urlretrieve(u, "/sources/" + n) for n, u in json.load(open("/gathered.json"))["objects"].items() if u]'
+
 FROM docker.io/library/debian:stable-slim AS bundles
 COPY --from=pub /publet/target/release/pub /usr/local/bin/pub
 COPY publication-0/objects /objects
+COPY --from=sources /sources /objects
 RUN pub bundle --dir=/objects --out=/bundles --base=https://pub.sustenaut.eu
 
 FROM python:3.14-slim
