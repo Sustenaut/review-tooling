@@ -88,7 +88,7 @@ def make_key(created: str, model: str = MODEL) -> str:
     secret = secret_path(model)
     if secret.exists():
         raise SuggestError(f"{secret} exists but keys.json has no key for {model}")
-    pub = pub_binary()
+    pub = checked_pub()
     root = Path(tempfile.mkdtemp(prefix="suggest-key-"))
     try:
         run(pub, root, "init")
@@ -108,6 +108,17 @@ def make_key(created: str, model: str = MODEL) -> str:
                     "signs": f"triage annotations drafted by {model}"}
     KEYS.write_text(json.dumps(known, indent=1, ensure_ascii=False) + "\n")
     return key
+
+
+def checked_pub() -> str:
+    """The pub to use, refusing one too old to `bundle` (before publet-cli v0.2.2)."""
+    pub = pub_binary()
+    usage = subprocess.run([pub], capture_output=True, text=True)
+    if "bundle" not in usage.stdout + usage.stderr:
+        version = subprocess.run([pub, "--version"], capture_output=True, text=True).stdout.strip().split("\n")[0]
+        raise SuggestError(f"{pub} ({version or 'unknown version'}) is older than publet-cli v0.2.2: "
+                           "unset PUB so `make` builds v0.2.2 into .pub/, or point PUB at one")
+    return pub
 
 
 def run(pub: str, root: Path, *args: str) -> str:
@@ -132,7 +143,7 @@ class Signer:
             if not path.exists():
                 raise SuggestError(f"the suggester key's secret is in neither $SUGGESTER_KEY nor {path}")
             secret = path.read_text()
-        self.pub = pub_binary()
+        self.pub = checked_pub()
         self.store = store_binary(self.pub)
         self.root = Path(tempfile.mkdtemp(prefix="suggest-"))
         run(self.pub, self.root, "init")
