@@ -10,6 +10,12 @@ drafts in the triage's `candidate` blob until a reviewer signs them (R14).
     python -m tools.suggest run --state=DIR --out=DIR   # one run (run.py)
     python -m tools.suggest key                         # make the suggester key for MODEL (once)
 
+Without an API key, a Claude Code session drafts instead (`make suggest-local`):
+`requests` writes each group's request body to a file, the session writes
+`<kind>.draft.json` beside each in the request's output schema, and
+`run --drafts=DIR` signs those exactly as it would the API's answers. The
+request bodies are the same, so the prompt blob discloses what was asked.
+
 A run, in order:
 
 1. Snapshot: every gathered extract (corpus/sources/gathered.json), with

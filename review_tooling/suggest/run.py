@@ -22,6 +22,48 @@ def write(out: Path, path: str, data: bytes) -> None:
     p.write_bytes(data)
 
 
+def requests(state_dir: Path, out: Path, *, pdc: dict[str, str] | None = None) -> list[Path]:
+    """Write each group's request body to `out/<kind>.json`, for a Claude Code session to
+    answer in place of the API: it writes `<kind>.draft.json` beside each, in the request's
+    output schema, and `run --drafts=DIR` signs those."""
+    reg = sg.registry()
+    snap = sg.snapshot(reg, sg.gathered())
+    state = sg.State.read(state_dir)
+    pdc = sg.pdc_classes() if pdc is None else pdc
+    concepts = state.concepts() + [{"pdc": c, "name": n, "status": "registry"}
+                                   for c, n in sg.registry_concepts(reg).items()]
+    out.mkdir(parents=True, exist_ok=True)
+    written = []
+    for kind, group in sorted(sg.groups(snap, state.covered()).items()):
+        path = out / f"{kind}.json"
+        path.write_text(json.dumps(draft.request(group, pdc, concepts), indent=1, ensure_ascii=False))
+        written.append(path)
+    return written
+
+
+class Drafts:
+    """Answers from files a Claude Code session wrote (see `requests`), shaped like the API's."""
+
+    def __init__(self, root: Path, version: str):
+        self.root, self.version = root, version
+        self.messages = self
+
+    def create(self, **body):
+        import types
+
+        for path in sorted(self.root.glob("*.json")):
+            if not path.name.endswith(".draft.json") and json.loads(path.read_text()) == body:
+                answer = path.with_name(path.stem + ".draft.json")
+                if answer.exists():
+                    text = answer.read_text()
+                    json.loads(text)
+                    return types.SimpleNamespace(
+                        stop_reason="end_turn", model=self.version,
+                        content=[types.SimpleNamespace(type="text", text=text)], usage=types.SimpleNamespace())
+                break
+        return types.SimpleNamespace(stop_reason="missing", stop_details=None)
+
+
 def run(state_dir: Path, out: Path, *, pdc: dict[str, str] | None = None, client=None,
         signer=None, log=print) -> dict:
     """Suggest concepts for what is not yet suggested. Returns the run's record."""
@@ -42,6 +84,7 @@ def run(state_dir: Path, out: Path, *, pdc: dict[str, str] | None = None, client
                                    for c, n in sg.registry_concepts(reg).items()]
     log(f"{len(snap)} extracts, {len(pending)} already in a suggestion, {len(groups)} groups by kind")
 
+    # `concepts` stays as it was at the start, so every request is what `requests` wrote.
     if signer is None:
         from tools.suggest.sign import Signer
 
@@ -79,7 +122,6 @@ def run(state_dir: Path, out: Path, *, pdc: dict[str, str] | None = None, client
                 write(out, f"suggestions/{sg.filename(ident)}.json",
                       json.dumps(suggestion, indent=1, ensure_ascii=False).encode())
                 record["suggestions"].append(ident)
-                concepts.append({"pdc": s["candidate"]["concept"]["pdc"], "name": s["title"], "status": "open"})
             log(f"{kind}: {len(group)} extracts, {len(made)} suggestion(s)"
                 + (f", {len(problems)} problem(s)" if problems else ""))
         for name, data in signer.export().items():

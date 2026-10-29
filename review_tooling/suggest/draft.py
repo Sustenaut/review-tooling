@@ -127,6 +127,8 @@ def call(body: dict, client=None) -> tuple[dict, str, dict]:
     response = client.messages.create(**body)
     if response.stop_reason == "refusal":
         raise SuggestError(f"refused: {getattr(response.stop_details, 'category', None)}")
+    if response.stop_reason == "missing":
+        raise SuggestError("no draft for this request")
     if response.stop_reason == "max_tokens":
         raise SuggestError("the draft ran past max_tokens")
     text = next(b.text for b in response.content if b.type == "text")
