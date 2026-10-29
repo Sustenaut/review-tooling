@@ -10,7 +10,7 @@ FROM docker.io/library/rust:1-slim AS pub
 ARG PUBLET_REV=v0.2.2
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-RUN git clone https://github.com/schryer/publet.git /publet \
+RUN git clone https://github.com/Sustenaut/publet.git /publet \
     && git -C /publet fetch --quiet origin "${PUBLET_REV}" \
     && git -C /publet checkout --quiet "${PUBLET_REV}"
 WORKDIR /publet

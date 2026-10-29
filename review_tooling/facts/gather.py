@@ -254,7 +254,7 @@ def meets(version: str, requirement: str) -> bool:
 def install_hint(requirement: str) -> str:
     tag = "v" + requirement.lstrip("^").rstrip("+")
     return (f"Unset PUB so `make` builds {tag} into .pub/, or install it: cargo install --locked --git "
-            f"https://github.com/schryer/publet --tag {tag} publet-cli pub-store")
+            f"https://github.com/Sustenaut/publet --tag {tag} publet-cli pub-store")
 
 
 @functools.cache
