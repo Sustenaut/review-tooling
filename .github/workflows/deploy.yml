@@ -11,6 +11,7 @@ on:
     paths:
       - "review-site/**"
       - "publication-0/objects/**"
+      - "corpus/sources/gathered.json"
       - "requirements.lock"
       - ".github/workflows/review-site.yml"
   workflow_dispatch:
