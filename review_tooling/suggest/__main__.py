@@ -41,4 +41,10 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    from tools.facts.gather import PubVersionError
+
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except PubVersionError as e:
+        print(e, file=sys.stderr)
+        sys.exit(2)

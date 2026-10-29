@@ -18,7 +18,9 @@ def main(argv: list[str]) -> int:
         case ["get", path]:
             from tools.facts.gather import pub_binary
 
-            return subprocess.run([pub_binary(), "get", path, f"--dir={facts.OBJECTS}"]).returncode
+            from tools.facts.gather import require_pub
+
+            return subprocess.run([require_pub(pub_binary()), "get", path, f"--dir={facts.OBJECTS}"]).returncode
         case ["gather", "--adopt"]:
             from tools.facts import gather
 
@@ -45,4 +47,10 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    from tools.facts.gather import PubVersionError
+
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except PubVersionError as e:
+        print(e, file=sys.stderr)
+        sys.exit(2)

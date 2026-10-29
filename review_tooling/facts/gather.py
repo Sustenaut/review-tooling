@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import base64
 import datetime as dt
+import functools
 import hashlib
 import json
 import os
@@ -212,6 +213,73 @@ def pub_binary() -> str:
     return os.environ.get("PUB") or (str(built) if built.exists() else "pub")
 
 
+# The pub this repository's tools need, stated once in pub-version.txt. pub
+# reads the same file and refuses to run when it does not meet it (from the
+# release after publet-cli v0.2.2, which added `pub require`); the Makefile
+# builds that release into .pub/.
+PUB_VERSION = ROOT / "pub-version.txt"
+
+
+class PubVersionError(GatherError):
+    """The pub found does not meet pub-version.txt."""
+
+
+def pub_requirement() -> str:
+    """The requirement in pub-version.txt: its first line that is not blank or a comment."""
+    return next(line.strip() for line in PUB_VERSION.read_text().splitlines()
+                if line.strip() and not line.lstrip().startswith("#"))
+
+
+def meets(version: str, requirement: str) -> bool:
+    """Whether `version` meets `requirement` (`0.2.2+`, `^0.2`, or a prefix such as `0.2`), as
+    pub reads them (publet_algorithms::version::satisfies)."""
+    def parts(v: str) -> list[int] | None:
+        try:
+            return [int(p) for p in v.split(".")]
+        except ValueError:
+            return None
+    if requirement.startswith("^"):
+        have, need = parts(version), parts(requirement[1:])
+        if have is None or need is None:
+            return False
+        fixed = next((i + 1 for i, p in enumerate(need) if p != 0), len(need))
+        padded = have + [0] * len(need)
+        return padded[:fixed] == need[:fixed] and have >= need
+    if requirement.endswith("+"):
+        have, need = parts(version), parts(requirement[:-1])
+        return have is not None and need is not None and have >= need
+    return not requirement or version == requirement or version.startswith(requirement + ".")
+
+
+def install_hint(requirement: str) -> str:
+    tag = "v" + requirement.lstrip("^").rstrip("+")
+    return (f"Unset PUB so `make` builds {tag} into .pub/, or install it: cargo install --locked --git "
+            f"https://github.com/schryer/publet --tag {tag} publet-cli pub-store")
+
+
+@functools.cache
+def require_pub(pub: str) -> str:
+    """`pub`, once it is known to meet pub-version.txt; PubVersionError otherwise, before any
+    work starts, rather than a missing command or a changed format halfway through."""
+    requirement = pub_requirement()
+    try:
+        out = subprocess.run([pub, "require", requirement], capture_output=True, text=True)
+    except FileNotFoundError:
+        raise PubVersionError(f"no pub at {pub!r}; this repository needs pub {requirement} "
+                              f"(pub-version.txt). {install_hint(requirement)}") from None
+    if out.returncode == 0:
+        return pub
+    if out.returncode == 2:
+        raise PubVersionError(f"{out.stderr.strip()}\n{install_hint(requirement)}")
+    # A pub from before `pub require` (publet-cli v0.2.2 and earlier): ask its version.
+    shown = subprocess.run([pub, "--version"], capture_output=True, text=True).stdout.split()
+    version = shown[1] if len(shown) > 1 and shown[0] == "pub" else "of an unknown version"
+    if meets(version, requirement):
+        return pub
+    raise PubVersionError(f"{pub} is pub {version}; this repository needs pub {requirement} "
+                          f"(pub-version.txt). {install_hint(requirement)}")
+
+
 def store_binary(pub: str) -> str:
     beside = Path(pub).parent / "pub-store"
     return str(beside) if beside.exists() else "pub-store"
@@ -227,7 +295,7 @@ def now() -> str:
 
 class Workspace:
     def __init__(self, pub: str, root: Path):
-        self.pub, self.root = pub, root
+        self.pub, self.root = require_pub(pub), root
 
     def run(self, *args: str) -> str:
         out = subprocess.run([self.pub, *args], cwd=self.root, capture_output=True, text=True)

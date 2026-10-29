@@ -21,7 +21,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from tools.facts.gather import pub_binary, store_binary
+from tools.facts.gather import pub_binary, require_pub, store_binary
 from tools.suggest import DIR, KEYS, MODEL, SuggestError, cid, filename, keys
 
 PURPOSE = "authored"
@@ -111,14 +111,8 @@ def make_key(created: str, model: str = MODEL) -> str:
 
 
 def checked_pub() -> str:
-    """The pub to use, refusing one too old to `bundle` (before publet-cli v0.2.2)."""
-    pub = pub_binary()
-    usage = subprocess.run([pub], capture_output=True, text=True)
-    if "bundle" not in usage.stdout + usage.stderr:
-        version = subprocess.run([pub, "--version"], capture_output=True, text=True).stdout.strip().split("\n")[0]
-        raise SuggestError(f"{pub} ({version or 'unknown version'}) is older than publet-cli v0.2.2: "
-                           "unset PUB so `make` builds v0.2.2 into .pub/, or point PUB at one")
-    return pub
+    """The pub to use, once it meets pub-version.txt."""
+    return require_pub(pub_binary())
 
 
 def run(pub: str, root: Path, *args: str) -> str:
