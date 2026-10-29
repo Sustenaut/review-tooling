@@ -2,13 +2,13 @@
 
     make sources-upload            # or: python -m tools.sources upload
 
-Uploads, to the `sources` tenant (schryer/storage), every object in
+Uploads, to the `sources` tenant (Sustenaut/storage), every object in
 corpus/sources/gathered.json not uploaded yet, the PDF of every gathered
 source record whose licence allows it (from ~/papers/<sha256>.pdf), and an
 index.json naming each item's object and address. Storage keeps every
 file of this tenant and names it by the SHA-256 of its bytes, so an
 upload repeated is the same file. The token is $SOURCES_TOKEN, or else
-`gh auth token`: storage accepts it if it can push to schryer/business-plan.
+`gh auth token`: storage accepts it if it can push to Sustenaut/business-plan.
 """
 
 from __future__ import annotations
