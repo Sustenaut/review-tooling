@@ -3,7 +3,7 @@
   "ci": {
     "language": "python",
     "with": {
-      "setup": "python -m venv .venv && .venv/bin/pip install --quiet -r requirements.lock",
+      "setup": "python -m venv .venv && .venv/bin/pip install --quiet --require-hashes -r tests/requirements.lock && .venv/bin/pip install --quiet -r requirements.lock",
       "test": ".venv/bin/python -m pytest -q tests",
       "sonar-args": "-Dsonar.sources=review_tooling,review-site/review"
     },

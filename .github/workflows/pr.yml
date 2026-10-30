@@ -13,7 +13,7 @@ jobs:
   functional:
     name: ci
     uses: Sustenaut/pubkit/.github/workflows/job-python-functional.yml@7914b2abb933747e303f5f981d8335d3704dcdb3 # v0.21.0
-    with: {"setup": "python -m venv .venv && .venv/bin/pip install --quiet -r requirements.lock", "test": ".venv/bin/python -m pytest -q tests"}
+    with: {"setup": "python -m venv .venv && .venv/bin/pip install --quiet --require-hashes -r tests/requirements.lock && .venv/bin/pip install --quiet -r requirements.lock", "test": ".venv/bin/python -m pytest -q tests"}
 
   audit:
     name: ci
