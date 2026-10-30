@@ -1,0 +1,16 @@
+{
+  "kind": "service",
+  "ci": {
+    "with": {
+      "setup": "python -m venv .venv && .venv/bin/pip install --quiet -r requirements.lock",
+      "test": ".venv/bin/python -m pytest -q tests",
+      "shellcheck": "with-secrets"
+    }
+  },
+  "protect": {
+    "checks": [
+      "ci / passed"
+    ],
+    "tags": false
+  }
+}

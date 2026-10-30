@@ -81,12 +81,10 @@ that knows the `concept` sort (schryer/publet#49). The suggestions in
 
 ## Deploying
 
-`infra/review-site.tf` holds the service, its image repository, the
-append-only bucket, the keys bucket, the service account and the domain
-mapping. After `./with-secrets terraform -chdir=infra apply`, run
-`./with-secrets infra/iap-oauth.sh` to give its login the OAuth client. The
-`review` DNS record goes in schryer/schryer-eu-infra. Then
-`.github/workflows/review-site.yml` builds, checks and deploys the image on
-each merge to main that touches the service, or when run by hand
-(`gh workflow run "review site"`). The image builds `pub` from publet at a
-pinned commit (`Dockerfile`, `PUBLET_REV`).
+The service, its image repository, the buckets and the domain mapping are in
+Sustenaut/business-plan's `infra/review-site.tf`, and business-plan also builds
+and deploys the image. The image needs publication 0's objects and the paper
+extracts, which are private until published, and they change more often than
+this code. So the build stays beside that data: its `review-site/Dockerfile`
+clones this repository at a pinned tag and copies `review-site/review/` in.
+Nothing about the data reaches this repository.

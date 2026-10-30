@@ -1,0 +1,15 @@
+{
+ "comment": "Made up for the tests.",
+ "extractor.claude": {
+  "principal": "automated",
+  "label": "Extractor",
+  "secret": "~/.config/example/extractor.key",
+  "signs": "extracts and check claims"
+ },
+ "reader.david": {
+  "principal": "human",
+  "label": "Reader",
+  "secret": "~/.config/example/reader.key",
+  "signs": "source records and verdicts"
+ }
+}

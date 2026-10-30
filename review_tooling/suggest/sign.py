@@ -21,8 +21,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from tools.facts.gather import pub_binary, require_pub, store_binary
-from tools.suggest import DIR, KEYS, MODEL, SuggestError, cid, filename, keys
+from review_tooling.facts.gather import pub_binary, require_pub, store_binary
+from review_tooling.suggest import DIR, KEYS, MODEL, SuggestError, cid, filename, keys
 
 PURPOSE = "authored"
 
@@ -128,7 +128,7 @@ class Signer:
     def __init__(self, model: str = MODEL, secret: str | None = None):
         known = keys().get(model)
         if known is None:
-            raise SuggestError(f"no suggester key for {model}: run `python -m tools.suggest key` on the laptop")
+            raise SuggestError(f"no suggester key for {model}: run `python -m review_tooling.suggest key` on the laptop")
         self.key = known["key"]
         if secret is None:
             secret = os.environ.get("SUGGESTER_KEY")

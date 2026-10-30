@@ -1,0 +1,5 @@
+# What CI tests with, pinned by requirements.lock.
+-r review-site/requirements.txt
+pytest
+httpx
+h3

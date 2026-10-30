@@ -1,6 +1,6 @@
 """The check page: each draft extract beside its page of the PDF.
 
-    make sources-review            # or: python -m tools.sources review [--port=8765]
+    make sources-review            # or: python -m review_tooling.sources review [--port=8765]
 
 Serves http://127.0.0.1:8765/ from this machine only. It shows one
 extract at a time -- the value, unit, what it is about, the locator and
@@ -25,7 +25,7 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from tools import sources
+from review_tooling import sources
 
 READER = "reader.david"
 EDITABLE = ("value", "unit", "quantity", "locator", "quote", "printed")

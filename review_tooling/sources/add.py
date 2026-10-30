@@ -1,6 +1,6 @@
 """A new source record from a PDF and its Crossref record.
 
-    python -m tools.sources add 10.1000/example ~/Downloads/example.pdf
+    python -m review_tooling.sources add 10.1000/example ~/Downloads/example.pdf
 
 The PDF is copied to ~/papers/<sha256>.pdf (the original stays where it
 was) and a source record is added to corpus/sources/sources.json with the
@@ -21,7 +21,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from tools import sources
+from review_tooling import sources
 
 CROSSREF = "https://api.crossref.org/works/"
 LICENCES = {"by/4.0": "CC BY 4.0", "by/3.0": "CC BY 3.0", "by-sa/4.0": "CC BY-SA 4.0", "zero/1.0": "CC0 1.0"}

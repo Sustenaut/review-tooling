@@ -6,14 +6,14 @@ printed value, and check claims for a paper's own inconsistencies, as
 publet's spec Section 5.9.8 describes them. An extract is drafted by a
 model (`read_by: extractor.claude`) and gathered only once a person has
 checked it against its page (`checked`), which is what
-`python -m tools.sources review` records.
+`python -m review_tooling.sources review` records.
 
-    python -m tools.sources add DOI PDF    # a new source record from the PDF and Crossref
-    python -m tools.sources lint           # the registry's shape; quotes against ~/papers/ where held
-    python -m tools.sources review         # the local check page
-    python -m tools.sources gather         # compose and sign what was checked (gather.py)
-    python -m tools.sources check          # gathered.json agrees with the registry (CI)
-    python -m tools.sources upload         # PDFs and objects to storage.sustenaut.eu (upload.py)
+    python -m review_tooling.sources add DOI PDF    # a new source record from the PDF and Crossref
+    python -m review_tooling.sources lint           # the registry's shape; quotes against ~/papers/ where held
+    python -m review_tooling.sources review         # the local check page
+    python -m review_tooling.sources gather         # compose and sign what was checked (gather.py)
+    python -m review_tooling.sources check          # gathered.json agrees with the registry (CI)
+    python -m review_tooling.sources upload         # PDFs and objects to storage.sustenaut.eu (upload.py)
 
 `lint` and `check` need neither pub, a key, nor the PDFs, so CI runs them
 in tests/test_sources.py. Where a PDF is in ~/papers/ (named by its
@@ -32,7 +32,7 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
-from tools import facts
+from review_tooling import facts
 
 ROOT = facts.ROOT
 DIR = ROOT / "corpus" / "sources"

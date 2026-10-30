@@ -1,0 +1,214 @@
+{
+ "comment": "Made up for the tests: nothing here is a real place or figure.",
+ "created": "2026-01-01T00:00:00Z",
+ "h3_resolution": 7,
+ "definitions": [
+  {
+   "id": "ucum",
+   "class": "definitional",
+   "content": "UCUM: the Unified Code for Units of Measure, version 2.2, case-sensitive form.",
+   "defines": {
+    "sort": "system",
+    "name": "UCUM",
+    "version": "2.2"
+   }
+  },
+  {
+   "id": "eur",
+   "class": "definitional",
+   "depends": [
+    "ucum"
+   ],
+   "content": "EUR: the euro, ISO 4217 code EUR.",
+   "defines": {
+    "sort": "dimension",
+    "symbol": "[EUR]",
+    "matches": [
+     {
+      "relation": "exact",
+      "ref": "urn:iso:std:iso:4217:EUR"
+     }
+    ]
+   }
+  },
+  {
+   "id": "k.area",
+   "class": "definitional",
+   "depends": [
+    "ucum"
+   ],
+   "content": "area: a quantity kind measured in m2.",
+   "defines": {
+    "sort": "kind",
+    "name": "area",
+    "dimension": {
+     "m": 2
+    },
+    "units": [
+     "m2"
+    ]
+   }
+  },
+  {
+   "id": "k.price",
+   "class": "definitional",
+   "depends": [
+    "ucum",
+    "eur"
+   ],
+   "content": "price: a quantity kind measured in [EUR].",
+   "defines": {
+    "sort": "kind",
+    "name": "price",
+    "dimension": {
+     "[EUR]": 1
+    },
+    "units": [
+     "[EUR]"
+    ]
+   }
+  },
+  {
+   "id": "m.value",
+   "class": "definitional",
+   "content": "single value: a value stated as exact, with no uncertainty.",
+   "defines": {
+    "sort": "measure",
+    "name": "single value",
+    "describes": "exact",
+    "parameters": [
+     {
+      "name": "value",
+      "type": "quantity",
+      "meaning": "the value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "c.place",
+   "class": "definitional",
+   "content": "Place: a place.",
+   "defines": {
+    "sort": "concept",
+    "pdc": "(1/9)",
+    "name": "Place"
+   }
+  },
+  {
+   "id": "c.thing",
+   "class": "definitional",
+   "content": "Thing: a made thing.",
+   "defines": {
+    "sort": "concept",
+    "pdc": "6",
+    "name": "Thing"
+   }
+  },
+  {
+   "id": "q.floor_area",
+   "class": "definitional",
+   "depends": [
+    "k.area"
+   ],
+   "content": "floor area: the area of a room's floor.",
+   "defines": {
+    "sort": "concept",
+    "pdc": "69~1",
+    "name": "floor area",
+    "kind": "k.area"
+   }
+  },
+  {
+   "id": "q.part_cost",
+   "class": "definitional",
+   "depends": [
+    "k.price"
+   ],
+   "content": "part cost: what one part costs.",
+   "defines": {
+    "sort": "concept",
+    "pdc": "65~1",
+    "name": "part cost",
+    "kind": "k.price"
+   }
+  }
+ ],
+ "procedures": [
+  {
+   "id": "p.plan",
+   "class": "procedural",
+   "content": "Read it from the plan."
+  }
+ ],
+ "singulars": [
+  {
+   "id": "s.harbour",
+   "name": "Harbour",
+   "class": "c.place",
+   "content": "Harbour: a made-up site.",
+   "location": {
+    "lat": 10.5,
+    "lng": 20.5,
+    "resolution": 7
+   }
+  },
+  {
+   "id": "s.harbour.cellar",
+   "name": "cellar",
+   "class": "c.place",
+   "part_of": "s.harbour",
+   "content": "cellar: the made-up cellar at Harbour.",
+   "depends": [
+    "c.place"
+   ]
+  },
+  {
+   "id": "s.widget",
+   "name": "Widget",
+   "class": "c.thing",
+   "content": "Widget: a made-up device."
+  }
+ ],
+ "facts": [
+  {
+   "id": "f.harbour.cellar.floor_area",
+   "about": "s.harbour.cellar",
+   "concept": "q.floor_area",
+   "unit": "m2",
+   "measure": "m.value",
+   "value": "20",
+   "method": "p.plan",
+   "sources": [
+    {
+     "ref": "https://example.org/plan",
+     "locator": "page 1"
+    }
+   ],
+   "mentions": [
+    "Harbour cellar"
+   ],
+   "content": "The Harbour cellar has a floor area of 20 m2."
+  },
+  {
+   "id": "f.widget.part_cost",
+   "about": "s.widget",
+   "concept": "q.part_cost",
+   "unit": "[EUR]",
+   "measure": "m.value",
+   "value": "3",
+   "method": "p.plan",
+   "sources": [
+    {
+     "ref": "https://example.org/plan",
+     "locator": "page 2"
+    }
+   ],
+   "mentions": [
+    "Widget part"
+   ],
+   "content": "The Widget part costs 3 euros."
+  }
+ ],
+ "lint_allow": []
+}

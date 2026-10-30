@@ -1,0 +1,33 @@
+{
+ "comment": "Made up for the tests.",
+ "keys": {},
+ "items": {
+  "e.maple_2024.pump_energy": {
+   "cid": "pub:sha2-256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "input": "x"
+  },
+  "e.maple_2024.pump_power": {
+   "cid": "pub:sha2-256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+   "input": "x"
+  },
+  "e.maple_2024.water_use": {
+   "cid": "pub:sha2-256:cccccccccccccccccccccccccccccccccccccccccccccccccccc",
+   "input": "x"
+  },
+  "k.energy_per_day": {
+   "cid": "pub:sha2-256:dddddddddddddddddddddddddddddddddddddddddddddddddddd",
+   "input": "x"
+  },
+  "k.power": {
+   "cid": "pub:sha2-256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+   "input": "x"
+  },
+  "k.volume_per_day": {
+   "cid": "pub:sha2-256:ffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "input": "x"
+  }
+ },
+ "objects": {},
+ "files": {},
+ "index": {}
+}

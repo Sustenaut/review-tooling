@@ -1,16 +1,16 @@
-"""python -m tools.sources add DOI PDF | lint | review [--port=N] | gather | check | fetch | upload (see tools/sources/__init__.py)."""
+"""python -m review_tooling.sources add DOI PDF | lint | review [--port=N] | gather | check | fetch | upload (see review_tooling/sources/__init__.py)."""
 
 from __future__ import annotations
 
 import sys
 
-from tools import sources
+from review_tooling import sources
 
 
 def main(argv: list[str]) -> int:
     match argv:
         case ["add", doi, pdf]:
-            from tools.sources import add
+            from review_tooling.sources import add
 
             print(add.add(doi, pdf))
             return 0
@@ -26,25 +26,25 @@ def main(argv: list[str]) -> int:
                   + ", ".join(f"{n} {s}" for s, n in sorted(counts.items())))
             return 1 if problems else 0
         case ["review", *rest]:
-            from tools.sources import review
+            from review_tooling.sources import review
 
             port = next((int(a.split("=", 1)[1]) for a in rest if a.startswith("--port=")), 8765)
             review.serve(port)
             return 0
         case ["gather"]:
-            from tools.sources import gather
+            from review_tooling.sources import gather
 
             gather.gather()
             return 0
         case ["fetch"]:
-            from tools.sources import gather
+            from review_tooling.sources import gather
 
             recorded = gather.load_gathered()
             gather.fetch(recorded, gather.OBJECTS)
             print(f"{gather.OBJECTS} holds the {len(recorded['objects'])} gathered object(s)")
             return 0
         case ["check"]:
-            from tools.sources import gather
+            from review_tooling.sources import gather
 
             problems = gather.check()
             for problem in problems:
@@ -53,7 +53,7 @@ def main(argv: list[str]) -> int:
                   else "corpus/sources agrees with gathered.json and storage")
             return 1 if problems else 0
         case ["upload"]:
-            from tools.sources import upload
+            from review_tooling.sources import upload
 
             upload.upload()
             return 0
@@ -62,7 +62,7 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    from tools.facts.gather import PubVersionError
+    from review_tooling.facts.gather import PubVersionError
 
     try:
         sys.exit(main(sys.argv[1:]))

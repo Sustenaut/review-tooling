@@ -1,0 +1,316 @@
+{
+ "comment": "Made up for the tests: no real paper, farm or figure.",
+ "created": "2026-01-01T00:00:00Z",
+ "definitions": [
+  {
+   "id": "ucum",
+   "content": "UCUM, version 2.2.",
+   "defines": {
+    "sort": "system",
+    "name": "UCUM",
+    "version": "2.2"
+   }
+  },
+  {
+   "id": "co2e",
+   "content": "{CO2e}: mass of carbon dioxide equivalent.",
+   "defines": {
+    "sort": "dimension",
+    "symbol": "{CO2e}"
+   },
+   "depends": [
+    "ucum"
+   ]
+  },
+  {
+   "id": "k.energy_per_day",
+   "content": "energy per day: a quantity kind measured in kW.h/d.",
+   "defines": {
+    "sort": "kind",
+    "name": "energy per day",
+    "dimension": {
+     "m": 2,
+     "kg": 1,
+     "s": -3
+    },
+    "units": [
+     "kW.h/d"
+    ]
+   },
+   "depends": [
+    "ucum"
+   ]
+  },
+  {
+   "id": "k.power",
+   "content": "power: a quantity kind measured in W.",
+   "defines": {
+    "sort": "kind",
+    "name": "power",
+    "dimension": {
+     "m": 2,
+     "kg": 1,
+     "s": -3
+    },
+    "units": [
+     "W"
+    ]
+   },
+   "depends": [
+    "ucum"
+   ]
+  },
+  {
+   "id": "k.volume_per_day",
+   "content": "volume per day: a quantity kind measured in L/d.",
+   "defines": {
+    "sort": "kind",
+    "name": "volume per day",
+    "dimension": {
+     "m": 3,
+     "s": -1
+    },
+    "units": [
+     "L/d"
+    ]
+   },
+   "depends": [
+    "ucum"
+   ]
+  },
+  {
+   "id": "k.volume",
+   "content": "volume: a quantity kind measured in L.",
+   "defines": {
+    "sort": "kind",
+    "name": "volume",
+    "dimension": {
+     "m": 3
+    },
+    "units": [
+     "L"
+    ]
+   },
+   "depends": [
+    "ucum"
+   ]
+  },
+  {
+   "id": "k.climate_per_mass",
+   "content": "climate impact per mass: a quantity kind measured in kg{CO2e}/kg.",
+   "defines": {
+    "sort": "kind",
+    "name": "climate impact per mass",
+    "dimension": {
+     "{CO2e}": 1
+    },
+    "units": [
+     "kg{CO2e}/kg"
+    ]
+   },
+   "depends": [
+    "ucum",
+    "co2e"
+   ]
+  },
+  {
+   "id": "m.reported",
+   "content": "reported value: a single number as a source prints it.",
+   "defines": {
+    "sort": "measure",
+    "name": "reported value",
+    "describes": "uncertainty",
+    "parameters": [
+     {
+      "name": "value",
+      "type": "quantity",
+      "meaning": "the number as printed"
+     }
+    ]
+   }
+  },
+  {
+   "id": "c.place",
+   "content": "Place: a place.",
+   "defines": {
+    "sort": "concept",
+    "pdc": "(1/9)",
+    "name": "Place"
+   }
+  },
+  {
+   "id": "c.farm",
+   "content": "farm: a made-up kind of farm.",
+   "defines": {
+    "sort": "concept",
+    "pdc": "631~9",
+    "name": "farm"
+   }
+  }
+ ],
+ "sources": [
+  {
+   "id": "src.maple_2024",
+   "short": "Maple and Oak (2024)",
+   "citation": "Maple, A., & Oak, B. (2024). A made-up paper. Journal of Examples, 1(1), 1.",
+   "doi": "10.1000/example",
+   "url": null,
+   "version": "version of record",
+   "source_type": "primary",
+   "licence": "CC BY 4.0",
+   "licence_line": "Made-up licence line.",
+   "file_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "file_name": "maple-oak-2024.pdf",
+   "pages": 29
+  }
+ ],
+ "systems": [
+  {
+   "id": "s.north",
+   "name": "North",
+   "class": "c.place",
+   "location": {
+    "lat": 10.5,
+    "lng": 20.5,
+    "resolution": 3
+   },
+   "content": "North: a made-up place."
+  },
+  {
+   "id": "s.north_farm",
+   "name": "North Farm",
+   "class": "c.farm",
+   "part_of": "s.north",
+   "content": "North Farm: a made-up farm."
+  }
+ ],
+ "scenarios": [
+  {
+   "id": "sc.grid",
+   "content": "A made-up electricity grid."
+  }
+ ],
+ "extracts": [
+  {
+   "id": "e.maple_2024.pump_energy",
+   "source": "src.maple_2024",
+   "about": "s.north_farm",
+   "quantity": "pump electricity per day",
+   "kind": "k.energy_per_day",
+   "unit": "kW.h/d",
+   "measure": "m.reported",
+   "value": {
+    "value": "12.5"
+   },
+   "locator": "p 10; sec 2",
+   "read": "text",
+   "quote": "The pump used 12.5 kwh daily.",
+   "scope": "made up for the tests",
+   "read_by": "extractor.claude",
+   "checked": null
+  },
+  {
+   "id": "e.maple_2024.pump_power",
+   "source": "src.maple_2024",
+   "about": "s.north_farm",
+   "quantity": "pump power",
+   "kind": "k.power",
+   "unit": "W",
+   "measure": "m.reported",
+   "value": {
+    "value": "500"
+   },
+   "locator": "p 10; sec 2",
+   "read": "text",
+   "quote": "The 500 W pump ran all day.",
+   "scope": "made up for the tests",
+   "read_by": "extractor.claude",
+   "checked": null
+  },
+  {
+   "id": "e.maple_2024.water_use",
+   "source": "src.maple_2024",
+   "about": "s.north_farm",
+   "quantity": "water used per day",
+   "kind": "k.volume_per_day",
+   "unit": "L/d",
+   "measure": "m.reported",
+   "value": {
+    "value": "1.0"
+   },
+   "locator": "p 10; sec 2",
+   "read": "text",
+   "quote": "The farm used 1.0 L of water per day.",
+   "scope": "made up for the tests",
+   "read_by": "extractor.claude",
+   "checked": null
+  },
+  {
+   "id": "e.maple_2024.climate",
+   "source": "src.maple_2024",
+   "about": "s.north_farm",
+   "quantity": "climate impact per kg",
+   "kind": "k.climate_per_mass",
+   "unit": "kg{CO2e}/kg",
+   "measure": "m.reported",
+   "value": {
+    "value": "0.30"
+   },
+   "locator": "p 10; sec 2",
+   "read": "text",
+   "quote": "Results showed 0.30 kg of CO2 per kg.",
+   "scope": "made up for the tests",
+   "read_by": "extractor.claude",
+   "checked": null,
+   "scenario": "sc.grid"
+  },
+  {
+   "id": "e.maple_2024.yield_max",
+   "source": "src.maple_2024",
+   "about": "s.north_farm",
+   "quantity": "highest yield reported",
+   "kind": "k.power",
+   "unit": "W",
+   "measure": "m.reported",
+   "value": {
+    "value": "9"
+   },
+   "locator": "p 10; sec 2",
+   "read": "text",
+   "quote": "The highest figure reported is 9 W (Other, 2020)",
+   "scope": "made up for the tests",
+   "read_by": "extractor.claude",
+   "checked": null,
+   "cites": "Other (2020), Journal of Examples 2"
+  },
+  {
+   "id": "e.maple_2024.yield_mean",
+   "source": "src.maple_2024",
+   "about": "s.north_farm",
+   "quantity": "mean yield",
+   "kind": "k.power",
+   "unit": "W",
+   "measure": "m.reported",
+   "value": {
+    "value": "4"
+   },
+   "locator": "p 10; sec 2",
+   "read": "text",
+   "quote": "The mean figure is 4 W",
+   "scope": "made up for the tests",
+   "read_by": "extractor.claude",
+   "checked": null
+  }
+ ],
+ "checks": [
+  {
+   "id": "ch.maple_2024.pump",
+   "source": "src.maple_2024",
+   "content": "500 W for 24 h is 12 kWh, not the 12.5 kWh printed.",
+   "depends": [
+    "e.maple_2024.pump_energy",
+    "e.maple_2024.pump_power"
+   ]
+  }
+ ]
+}
