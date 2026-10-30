@@ -1,0 +1,99 @@
+{
+  "claims": {
+    "identity": {
+      "class": "archival",
+      "content": "review-tooling 0.1.0 is released as v0.1.0 from commit b977ee783bbedaa229f152aa192754da2e8c416f.",
+      "data": {
+        "columns": [
+          {
+            "name": "name"
+          },
+          {
+            "name": "version"
+          },
+          {
+            "name": "check"
+          },
+          {
+            "name": "expect"
+          },
+          {
+            "name": "tag"
+          },
+          {
+            "name": "commit"
+          }
+        ],
+        "rows": [
+          [
+            "review-tooling",
+            "0.1.0",
+            "",
+            "",
+            "v0.1.0",
+            "b977ee783bbedaa229f152aa192754da2e8c416f"
+          ]
+        ]
+      },
+      "scope": "the published release v0.1.0 of review-tooling",
+      "sources": [
+        {
+          "ref": "review-tooling",
+          "revision": "b977ee783bbedaa229f152aa192754da2e8c416f"
+        }
+      ]
+    },
+    "release": {
+      "class": "archival",
+      "content": "review-tooling 0.1.0 was released on 2026-10-30 from commit b977ee783bbedaa229f152aa192754da2e8c416f with these changes.",
+      "data": {
+        "columns": [
+          {
+            "name": "category"
+          },
+          {
+            "name": "change"
+          }
+        ],
+        "rows": [
+          [
+            "added",
+            "First release: the facts, sources and suggest tools and the review service, split out of Sustenaut/business-plan."
+          ]
+        ]
+      },
+      "depends": [
+        "#identity"
+      ],
+      "scope": "the published release v0.1.0 of review-tooling",
+      "sources": [
+        {
+          "ref": "review-tooling",
+          "revision": "b977ee783bbedaa229f152aa192754da2e8c416f"
+        }
+      ]
+    }
+  },
+  "created": "2026-10-30T00:00:00Z",
+  "sections": [
+    {
+      "heading": "Identity",
+      "items": [
+        {
+          "ref": "#identity"
+        }
+      ]
+    },
+    {
+      "heading": "Release",
+      "items": [
+        {
+          "ref": "#release"
+        }
+      ]
+    }
+  ],
+  "slug": "pkg.review-tooling",
+  "tag": "PKG-REVTOO-10-2026",
+  "title": "review-tooling"
+}
