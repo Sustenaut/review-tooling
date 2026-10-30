@@ -1,6 +1,6 @@
 [project]
 name = "review-tooling"
-version = "0.1.0"
+version = "0.0.0"
 description = "Tools for a corpus of signed facts and paper extracts, and the review service for suggested concepts."
 requires-python = ">=3.12"
 

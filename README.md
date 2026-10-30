@@ -28,7 +28,14 @@ python -m review_tooling.sources check
 The suggestion job also needs `review-tooling[suggest]`. Gathering and
 signing need a `pub` from publet-cli.
 
-A release is a tag on main, with the version in `pyproject.toml`.
+## Releasing
+
+[pubrel](https://github.com/Sustenaut/pubrel) versions this package. A pull request
+that changes code records it with `pubrel add`. To release, run `pubrel prepare` on a
+clean main, in a checkout that has this corpus's key (`corpus/.publet/signing.key`,
+git-ignored, on the machine that signs), and merge the pull request it opens. CI then
+tags `vX.Y.Z`, makes the GitHub release, and attaches the wheel. A consumer moves to it
+by changing its pin.
 
 ## Testing
 

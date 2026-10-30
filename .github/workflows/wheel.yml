@@ -1,0 +1,35 @@
+# Attaches the wheel to the release pubrel just made, once, from the release's tag.
+# On main's workflow finishing, because a release made with GITHUB_TOKEN starts
+# no workflow of its own. The wheel holds no data, as this repository holds none.
+name: wheel
+
+on:
+  workflow_run:
+    workflows: [main]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  wheel:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Build and attach it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          wheel="review_tooling-$version-py3-none-any.whl"
+          gh release view "v$version" >/dev/null 2>&1 || { echo "v$version is not released"; exit 0; }
+          gh release view "v$version" --json assets --jq '.assets[].name' | grep -qx "$wheel" && { echo "$wheel is already attached"; exit 0; }
+          python -m pip wheel --no-deps . -w dist
+          gh release upload "v$version" "dist/$wheel"
