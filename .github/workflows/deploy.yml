@@ -44,10 +44,15 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v3
 
       # pub is built from publet at the commit pinned in the Dockerfile.
+      - name: Sign Docker in to the image repository
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
       - name: Build the image
-        run: |
-          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
-          docker build -f review-site/Dockerfile -t "${IMAGE}:${GITHUB_SHA}" .
+        uses: Sustenaut/pubkit/actions/docker-build@1f61ab0da97be8f16c94e0de604ab183e6ac8f8e # v0.22.0
+        with:
+          tags: ${{ env.IMAGE }}:${{ github.sha }}
+          scope: review-site
+          file: review-site/Dockerfile
 
       # The image must start and answer its health check before it is pushed.
       - name: Start the image
