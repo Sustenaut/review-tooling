@@ -28,6 +28,7 @@ import re
 import shutil
 import subprocess
 import unicodedata
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -47,6 +48,21 @@ SOURCE_TYPES = ("primary", "secondary", "review", "dataset")
 # Licences under which a copy may be put on storage.sustenaut.eu.
 OPEN_LICENCES = ("CC BY", "CC BY 4.0", "CC BY 3.0", "CC BY-SA 4.0", "CC0 1.0")
 STORAGE = "https://storage.sustenaut.eu/sources"
+
+
+def token() -> str:
+    """What the private `sources` tenant takes: $SOURCES_TOKEN; in GitHub Actions, the
+    job's OpenID Connect token (permissions: id-token: write); else `gh auth token`,
+    which storage accepts if it can push to Sustenaut/business-plan."""
+    if os.environ.get("SOURCES_TOKEN"):
+        return os.environ["SOURCES_TOKEN"]
+    if os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL"):
+        request = urllib.request.Request(
+            os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"] + "&audience=storage.sustenaut.eu",
+            headers={"Authorization": f"bearer {os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN']}"})
+        with urllib.request.urlopen(request, timeout=30) as r:  # noqa: S310 (GitHub's own address)
+            return json.load(r)["value"]
+    return subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, check=True).stdout.strip()
 
 
 def papers_dir() -> Path:

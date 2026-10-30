@@ -1,4 +1,4 @@
-"""python -m tools.sources add DOI PDF | lint | review [--port=N] | gather | check | upload (see tools/sources/__init__.py)."""
+"""python -m tools.sources add DOI PDF | lint | review [--port=N] | gather | check | fetch | upload (see tools/sources/__init__.py)."""
 
 from __future__ import annotations
 
@@ -35,6 +35,13 @@ def main(argv: list[str]) -> int:
             from tools.sources import gather
 
             gather.gather()
+            return 0
+        case ["fetch"]:
+            from tools.sources import gather
+
+            recorded = gather.load_gathered()
+            gather.fetch(recorded, gather.OBJECTS)
+            print(f"{gather.OBJECTS} holds the {len(recorded['objects'])} gathered object(s)")
             return 0
         case ["check"]:
             from tools.sources import gather
