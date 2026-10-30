@@ -20,7 +20,10 @@ RUN cargo build --release --locked -p publet-cli
 # suggestion's members and a signed concept's members show by name.
 FROM python:3.14-slim AS sources
 COPY corpus/sources/gathered.json /gathered.json
+# With a User-Agent of its own: Cloudflare refuses Python's default (error 1010).
 RUN mkdir /sources && python -c 'import json, urllib.request; \
+    opener = urllib.request.build_opener(); opener.addheaders = [("User-Agent", "sustenaut-review-site-build")]; \
+    urllib.request.install_opener(opener); \
     [urllib.request.urlretrieve(u, "/sources/" + n) for n, u in json.load(open("/gathered.json"))["objects"].items() if u]'
 
 FROM docker.io/library/debian:stable-slim AS bundles
