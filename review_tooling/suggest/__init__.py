@@ -60,7 +60,7 @@ KEYS = DIR / "keys.json"
 MODEL = os.environ.get("SUGGEST_MODEL", "claude-opus-5-5")
 EFFORT = "high"
 # The PDC the suggestions are coded in: Sustenaut/publet-decimal-classification,
-# the same commit pub-site/Dockerfile serves.
+# the same commit Sustenaut/pub-site's Dockerfile serves.
 PDC_REV = "6f0f3072701a643fd8516e8551314677954713af"
 PDC_URL = (f"https://raw.githubusercontent.com/Sustenaut/publet-decimal-classification/{PDC_REV}"
            "/data/pdc/udc-summary.json")
