@@ -1,2 +1,0 @@
-# The suggestion job only (.github/workflows/suggest.yml), on top of requirements.lock.
-anthropic==2.3.0

@@ -1,4 +1,4 @@
-"""One run of the suggestion job (see tools/suggest/__init__.py).
+"""One run of the suggestion job (see review_tooling/suggest/__init__.py).
 
 `--state` is a copy of what the review bucket holds under `suggestions/`,
 `reviews/` and `runs/`; `--out` receives, in the bucket's layout, what the
@@ -11,9 +11,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from tools import suggest as sg
-from tools.facts.gather import now
-from tools.suggest import draft
+from review_tooling import suggest as sg
+from review_tooling.facts.gather import now
+from review_tooling.suggest import draft
 
 
 def write(out: Path, path: str, data: bytes) -> None:
@@ -86,7 +86,7 @@ def run(state_dir: Path, out: Path, *, pdc: dict[str, str] | None = None, client
 
     # `concepts` stays as it was at the start, so every request is what `requests` wrote.
     if signer is None:
-        from tools.suggest.sign import Signer
+        from review_tooling.suggest.sign import Signer
 
         signer = Signer()
     created = now()

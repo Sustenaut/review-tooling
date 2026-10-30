@@ -4,8 +4,8 @@
 gather` composes and signs them into `corpus/objects/` with a `pub` built
 from publet (see gather.py). Two commands read the result:
 
-    python -m tools.facts get place.site.example.room.floor_area
-    python -m tools.facts lint
+    python -m review_tooling.facts get place.site.example.room.floor_area
+    python -m review_tooling.facts lint
 
 `get` is `pub get` over corpus/objects/. `lint` reads the registry itself,
 so it runs anywhere, CI included, without pub or the signing key: it looks
@@ -17,11 +17,14 @@ number disagrees with the fact.
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+# The repository holding corpus/: where the tools run, or $SOURCES_ROOT. The data
+# stays private there; this package holds none of it.
+ROOT = Path(os.environ.get("SOURCES_ROOT") or Path.cwd()).resolve()
 REGISTRY = ROOT / "corpus" / "registry.json"
 OBJECTS = ROOT / "corpus" / "objects"
 PROSE = ("plan-doc", "plans", "opportunities")

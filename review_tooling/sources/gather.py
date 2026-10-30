@@ -1,8 +1,8 @@
 """Compose and sign the checked extracts, with what they need, by the facts gather's rules.
 
-Run on the laptop that holds the keys, after `python -m tools.sources review`:
+Run on the laptop that holds the keys, after `python -m review_tooling.sources review`:
 
-    make sources-gather            # or: python -m tools.sources gather
+    make sources-gather            # or: python -m review_tooling.sources gather
     PUB=path/to/pub make sources-gather
 
 Only what a person has checked is gathered: each extract whose `checked`
@@ -22,9 +22,9 @@ repository; the first gather makes a key that does not exist yet.
 
 The objects are not committed. A gather writes them to the local cache
 (corpus/sources/objects/, ignored by git) and records each in
-corpus/sources/gathered.json; `python -m tools.sources upload` puts them on
+corpus/sources/gathered.json; `python -m review_tooling.sources upload` puts them on
 storage.sustenaut.eu and records the address. What the facts gather keeps,
-this keeps (tools/facts/gather.py): an unchanged input keeps its object, a
+this keeps (review_tooling/facts/gather.py): an unchanged input keeps its object, a
 changed one is composed again and supersedes it, and one gone from the
 registry is retracted. A later gather holds every recorded object, from the
 cache or else from storage.
@@ -39,9 +39,9 @@ import tempfile
 import urllib.request
 from pathlib import Path
 
-from tools import sources
-from tools.facts import gather as fg
-from tools.facts.gather import GatherError, Item, Plan, Workspace, filename, pub_binary
+from review_tooling import sources
+from review_tooling.facts import gather as fg
+from review_tooling.facts.gather import GatherError, Item, Plan, Workspace, filename, pub_binary
 
 OBJECTS = sources.DIR / "objects"
 GATHERED = sources.GATHERED
@@ -296,7 +296,7 @@ def compose(ws: Workspace, item: Item, cids: dict[str, str], created: str) -> st
     else:
         args = ["annotate", at, "--kind=attests", f"--target={x['key']}", "--claim=is-automated",
                 f"--about={x['key']}", "--scope=unconditional",
-                "--method=The key is used only by tools/sources to sign what a language model read from a paper."]
+                "--method=The key is used only by review_tooling/sources to sign what a language model read from a paper."]
     return ws.run(*args).split()[0]
 
 
@@ -350,16 +350,16 @@ def gather(path: Path | None = None) -> Plan:
         write(gathered)
         print(f"kept {len(p.keep)}, composed {len(p.compose)}, revised {len(p.revise)}, "
               f"retracted {len(p.retract)}; {len(added)} object(s) added to {OBJECTS}; "
-              f"run `python -m tools.sources upload` next")
+              f"run `python -m review_tooling.sources upload` next")
         return p
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
 
-COMMENT = ("Written by `python -m tools.sources gather` and `upload`; do not edit. The key each name in "
+COMMENT = ("Written by `python -m review_tooling.sources gather` and `upload`; do not edit. The key each name in "
            "keys.json became; for each gathered item, the digest of its input and the object it became; "
            "each object's address on storage.sustenaut.eu (null until uploaded); and each open-licence "
-           "PDF's address. `python -m tools.sources check` compares it with sources.json.")
+           "PDF's address. `python -m review_tooling.sources check` compares it with sources.json.")
 
 
 def write(gathered: dict) -> None:

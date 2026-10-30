@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 
-from tools.suggest import MODEL, EFFORT, SuggestError, canonical_json
+from review_tooling.suggest import MODEL, EFFORT, SuggestError, canonical_json
 
 INSTRUCTIONS = """\
 You group extracts from scientific papers into concepts for Sustenaut's \

@@ -2,7 +2,7 @@
 
 Run on the laptop that holds the signing key:
 
-    make gather                       # or: python -m tools.facts gather
+    make gather                       # or: python -m review_tooling.facts gather
     PUB=path/to/pub make gather       # use a pub already built; skips `make pub`
 
 The key's secret is read from $FACTS_KEY (default
@@ -29,7 +29,7 @@ rules, each tested in tests/test_facts.py:
    withdrawn with `retracts`; nothing is deleted.
 5. Objects are only ever added to corpus/objects/.
 
-`python -m tools.facts check` tests the same rules without pub or the key,
+`python -m review_tooling.facts check` tests the same rules without pub or the key,
 which is how CI catches a registry edit nobody gathered, or an object
 nobody's registry explains.
 """
@@ -48,7 +48,7 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from tools.facts import OBJECTS, REGISTRY, ROOT, registry
+from review_tooling.facts import OBJECTS, REGISTRY, ROOT, registry
 
 KEY_ID = ROOT / "corpus" / "key"
 GATHERED = ROOT / "corpus" / "gathered.json"
@@ -444,7 +444,7 @@ def gather(path: Path = REGISTRY, *, sign: bool = True) -> Plan:
 
 COMMENT = ("Written by `make gather`; do not edit. For each registry item, the digest of the input it was "
            "composed from and the object it became; and every file in corpus/objects/. "
-           "`python -m tools.facts check` compares it with the registry and the files.")
+           "`python -m review_tooling.facts check` compares it with the registry and the files.")
 
 
 def export(ws: Workspace, objects: Path | None = None) -> set[str]:

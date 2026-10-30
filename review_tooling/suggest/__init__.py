@@ -7,8 +7,8 @@ review.sustenaut.eu agree with, edit, split or reject. A suggestion signs
 nothing on anyone's behalf: the concept and its memberships are unsigned
 drafts in the triage's `candidate` blob until a reviewer signs them (R14).
 
-    python -m tools.suggest run --state=DIR --out=DIR   # one run (run.py)
-    python -m tools.suggest key                         # make the suggester key for MODEL (once)
+    python -m review_tooling.suggest run --state=DIR --out=DIR   # one run (run.py)
+    python -m review_tooling.suggest key                         # make the suggester key for MODEL (once)
 
 Without an API key, a Claude Code session drafts instead (`make suggest-local`):
 `requests` writes each group's request body to a file, the session writes
@@ -51,7 +51,7 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
-from tools import facts, sources
+from review_tooling import facts, sources
 
 ROOT = facts.ROOT
 DIR = ROOT / "corpus" / "suggest"

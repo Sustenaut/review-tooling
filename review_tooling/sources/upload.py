@@ -1,6 +1,6 @@
 """Put what gather made on storage.sustenaut.eu, kept, and record where.
 
-    make sources-upload            # or: python -m tools.sources upload
+    make sources-upload            # or: python -m review_tooling.sources upload
 
 Uploads, to the `sources` tenant (Sustenaut/storage), every object in
 corpus/sources/gathered.json not uploaded yet, the PDF of every gathered
@@ -17,8 +17,8 @@ import urllib.request
 import uuid
 from pathlib import Path
 
-from tools import sources
-from tools.sources import gather
+from review_tooling import sources
+from review_tooling.sources import gather
 
 ENDPOINT = f"{sources.STORAGE}/files"
 HOST = sources.STORAGE.rsplit("/", 1)[0]
