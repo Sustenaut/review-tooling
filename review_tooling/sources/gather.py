@@ -256,7 +256,9 @@ def fetch(gathered: dict, into: Path) -> None:
         if not target.exists():
             if not url:
                 raise GatherError(f"{name} is neither in {into} nor uploaded")
-            with urllib.request.urlopen(url) as r:  # noqa: S310 (our own storage)
+            # Named, as upload.py does: Cloudflare refuses Python's default User-Agent (error 1010).
+            request = urllib.request.Request(url, headers={"User-Agent": "sustenaut-sources"})
+            with urllib.request.urlopen(request) as r:  # noqa: S310 (our own storage)
                 target.write_bytes(r.read())
 
 
