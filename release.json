@@ -1,0 +1,17 @@
+{
+  "code": [
+    "review_tooling/",
+    "review-site/",
+    "pyproject.toml"
+  ],
+  "corpus": "corpus",
+  "manifest": {
+    "kind": "pyproject",
+    "path": "pyproject.toml"
+  },
+  "name": "review-tooling",
+  "package": "pkg.review-tooling",
+  "tag": "PKG-REVTOO-10-2026",
+  "install": "pip install \"review-tooling @ git+https://github.com/Sustenaut/review-tooling@{tag}\"",
+  "key": "pub:sha2-256:hntkz24dullaqoh73ljirsk4iuhbrsqhplpaqvi2qkftylney5va"
+}

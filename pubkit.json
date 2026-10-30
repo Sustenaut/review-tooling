@@ -1,11 +1,13 @@
 {
-  "kind": "service",
+  "kind": "utility",
   "ci": {
+    "language": "python",
     "with": {
       "setup": "python -m venv .venv && .venv/bin/pip install --quiet -r requirements.lock",
       "test": ".venv/bin/python -m pytest -q tests",
-      "shellcheck": "with-secrets"
-    }
+      "sonar-args": "-Dsonar.sources=review_tooling,review-site/review"
+    },
+    "release": {}
   },
   "protect": {
     "checks": [

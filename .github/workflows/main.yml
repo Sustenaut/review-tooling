@@ -19,19 +19,35 @@ jobs:
       actions: read
       contents: read
 
-  checks:
+  functional:
     name: ci
     needs: [tested]
     if: ${{ needs.tested.outputs.tested != 'true' }}
-    uses: Sustenaut/pubkit/.github/workflows/job-service-checks.yml@7914b2abb933747e303f5f981d8335d3704dcdb3 # v0.21.0
-    with: {"shellcheck": "with-secrets"}
-
-  tests:
-    name: ci
-    needs: [tested]
-    if: ${{ needs.tested.outputs.tested != 'true' }}
-    uses: Sustenaut/pubkit/.github/workflows/job-service-tests.yml@7914b2abb933747e303f5f981d8335d3704dcdb3 # v0.21.0
+    uses: Sustenaut/pubkit/.github/workflows/job-python-functional.yml@7914b2abb933747e303f5f981d8335d3704dcdb3 # v0.21.0
     with: {"setup": "python -m venv .venv && .venv/bin/pip install --quiet -r requirements.lock", "test": ".venv/bin/python -m pytest -q tests"}
+
+  audit:
+    name: ci
+    needs: [tested]
+    if: ${{ needs.tested.outputs.tested != 'true' }}
+    uses: Sustenaut/pubkit/.github/workflows/job-python-audit.yml@7914b2abb933747e303f5f981d8335d3704dcdb3 # v0.21.0
+
+  osv:
+    name: ci
+    needs: [tested]
+    if: ${{ needs.tested.outputs.tested != 'true' }}
+    uses: Sustenaut/pubkit/.github/workflows/job-osv.yml@7914b2abb933747e303f5f981d8335d3704dcdb3 # v0.21.0
+
+  sonar:
+    name: ci
+    needs: [tested, functional]
+    if: ${{ !failure() && !cancelled() }}
+    uses: Sustenaut/pubkit/.github/workflows/job-sonar.yml@7914b2abb933747e303f5f981d8335d3704dcdb3 # v0.21.0
+    permissions:
+      actions: read
+      contents: read
+    with: {"sonar-args": "-Dsonar.sources=review_tooling,review-site/review", "reports": "sonar.python.coverage.reportPaths=*.xml", "layout": "-Dsonar.sources=. -Dsonar.tests=tests -Dsonar.exclusions=tests/**", "coverage-run": "${{ needs.tested.outputs.run-id }}"}
+    secrets: { SONAR_TOKEN: '${{ secrets.SONAR_TOKEN }}' }
 
   # The one check a ruleset requires: it passes only when every job
   # above succeeded or, where the merge queue already passed the
@@ -39,7 +55,7 @@ jobs:
   passed:
     name: ci / passed
     if: always()
-    needs: [tested, checks, tests]
+    needs: [tested, functional, audit, osv, sonar]
     runs-on: ubuntu-latest
     steps:
       - run: |
@@ -47,3 +63,15 @@ jobs:
           echo "$RESULTS" | jq -e --arg tested "$TESTED" '.tested.result == "success"
             and all(.[]; .result == "success" or (.result == "skipped" and $tested == "true"))' > /dev/null
         env: { RESULTS: '${{ toJSON(needs) }}', TESTED: '${{ needs.tested.outputs.tested }}' }
+
+  # pubrel's release workflow: on a pull request, a code change records
+  # what it changes and a release is the bump its changes require; on
+  # main, a published version is tagged and released.
+  release:
+    needs: passed
+    if: ${{ !cancelled() && needs.passed.result == 'success' }}
+    uses: Sustenaut/pubrel/.github/workflows/release.yml@5395ddd816d9530b649b92ed0b8b3cfdfe87d7dc # v0.6.1
+    with: {"pubrel-version": "v0.6.1"}
+    secrets: { RELEASE_APP_ID: '${{ secrets.RELEASE_APP_ID }}', RELEASE_APP_KEY: '${{ secrets.RELEASE_APP_KEY }}' }
+    permissions:
+      contents: write

@@ -10,25 +10,50 @@ permissions:
   contents: read
 
 jobs:
-  checks:
+  functional:
     name: ci
-    uses: Sustenaut/pubkit/.github/workflows/job-service-checks.yml@7914b2abb933747e303f5f981d8335d3704dcdb3 # v0.21.0
-    with: {"shellcheck": "with-secrets"}
-
-  tests:
-    name: ci
-    uses: Sustenaut/pubkit/.github/workflows/job-service-tests.yml@7914b2abb933747e303f5f981d8335d3704dcdb3 # v0.21.0
+    uses: Sustenaut/pubkit/.github/workflows/job-python-functional.yml@7914b2abb933747e303f5f981d8335d3704dcdb3 # v0.21.0
     with: {"setup": "python -m venv .venv && .venv/bin/pip install --quiet -r requirements.lock", "test": ".venv/bin/python -m pytest -q tests"}
+
+  audit:
+    name: ci
+    uses: Sustenaut/pubkit/.github/workflows/job-python-audit.yml@7914b2abb933747e303f5f981d8335d3704dcdb3 # v0.21.0
+
+  osv:
+    name: ci
+    uses: Sustenaut/pubkit/.github/workflows/job-osv.yml@7914b2abb933747e303f5f981d8335d3704dcdb3 # v0.21.0
+
+  review:
+    name: ci
+    uses: Sustenaut/pubkit/.github/workflows/job-review.yml@7914b2abb933747e303f5f981d8335d3704dcdb3 # v0.21.0
+
+  sonar:
+    name: ci
+    needs: [functional]
+    uses: Sustenaut/pubkit/.github/workflows/job-sonar.yml@7914b2abb933747e303f5f981d8335d3704dcdb3 # v0.21.0
+    with: {"sonar-args": "-Dsonar.sources=review_tooling,review-site/review", "reports": "sonar.python.coverage.reportPaths=*.xml", "layout": "-Dsonar.sources=. -Dsonar.tests=tests -Dsonar.exclusions=tests/**"}
+    secrets: { SONAR_TOKEN: '${{ secrets.SONAR_TOKEN }}' }
 
   # The one check a ruleset requires: it passes only when every job
   # above succeeded. None of them is ever skipped for not being asked for.
   passed:
     name: ci / passed
     if: always()
-    needs: [checks, tests]
+    needs: [functional, audit, osv, review, sonar]
     runs-on: ubuntu-latest
     steps:
       - run: |
           echo "$RESULTS"
           echo "$RESULTS" | jq -e 'all(.[]; .result == "success")' > /dev/null
         env: { RESULTS: '${{ toJSON(needs) }}' }
+
+  # pubrel's release workflow: on a pull request, a code change records
+  # what it changes and a release is the bump its changes require; on
+  # main, a published version is tagged and released.
+  release:
+    needs: passed
+    uses: Sustenaut/pubrel/.github/workflows/release.yml@5395ddd816d9530b649b92ed0b8b3cfdfe87d7dc # v0.6.1
+    with: {"pubrel-version": "v0.6.1"}
+    secrets: { RELEASE_APP_ID: '${{ secrets.RELEASE_APP_ID }}', RELEASE_APP_KEY: '${{ secrets.RELEASE_APP_KEY }}' }
+    permissions:
+      contents: write
