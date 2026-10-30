@@ -249,15 +249,18 @@ def use_keys(ws: Workspace, gathered: dict, created: str) -> dict[str, str]:
 
 
 def fetch(gathered: dict, into: Path) -> None:
-    """Every recorded object not in the cache, from storage."""
+    """Every recorded object not in the cache, from storage, whose `sources` tenant is private."""
     into.mkdir(parents=True, exist_ok=True)
+    auth = None
     for name, url in gathered["objects"].items():
         target = into / name
         if not target.exists():
             if not url:
                 raise GatherError(f"{name} is neither in {into} nor uploaded")
             # Named, as upload.py does: Cloudflare refuses Python's default User-Agent (error 1010).
-            request = urllib.request.Request(url, headers={"User-Agent": "sustenaut-sources"})
+            auth = auth or sources.token()
+            request = urllib.request.Request(url, headers={"User-Agent": "sustenaut-sources",
+                                                           "Authorization": f"Bearer {auth}"})
             with urllib.request.urlopen(request) as r:  # noqa: S310 (our own storage)
                 target.write_bytes(r.read())
 

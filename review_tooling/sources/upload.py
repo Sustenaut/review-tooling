@@ -7,15 +7,12 @@ corpus/sources/gathered.json not uploaded yet, the PDF of every gathered
 source record whose licence allows it (from ~/papers/<sha256>.pdf), and an
 index.json naming each item's object and address. Storage keeps every
 file of this tenant and names it by the SHA-256 of its bytes, so an
-upload repeated is the same file. The token is $SOURCES_TOKEN, or else
-`gh auth token`: storage accepts it if it can push to Sustenaut/business-plan.
+upload repeated is the same file. The token is sources.token().
 """
 
 from __future__ import annotations
 
 import json
-import os
-import subprocess
 import urllib.request
 import uuid
 from pathlib import Path
@@ -25,11 +22,6 @@ from tools.sources import gather
 
 ENDPOINT = f"{sources.STORAGE}/files"
 HOST = sources.STORAGE.rsplit("/", 1)[0]
-
-
-def token() -> str:
-    return os.environ.get("SOURCES_TOKEN") or subprocess.run(
-        ["gh", "auth", "token"], capture_output=True, text=True, check=True).stdout.strip()
 
 
 def post(name: str, data: bytes, label: str, auth: str) -> dict:
@@ -52,7 +44,7 @@ def upload(papers: Path | None = None) -> dict:
     papers = sources.papers_dir() if papers is None else papers
     reg = sources.registry()
     gathered = gather.load_gathered()
-    auth = token()
+    auth = sources.token()
     for name, url in sorted(gathered["objects"].items()):
         if not url:
             answer = post(name, (gather.OBJECTS / name).read_bytes(), "publet object", auth)

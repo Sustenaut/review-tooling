@@ -16,20 +16,14 @@ RUN git clone https://github.com/Sustenaut/publet.git /publet \
 WORKDIR /publet
 RUN cargo build --release --locked -p publet-cli
 
-# The paper extracts and what they cite, from storage.sustenaut.eu, so a
-# suggestion's members and a signed concept's members show by name.
-FROM python:3.14-slim AS sources
-COPY corpus/sources/gathered.json /gathered.json
-# With a User-Agent of its own: Cloudflare refuses Python's default (error 1010).
-RUN mkdir /sources && python -c 'import json, urllib.request; \
-    opener = urllib.request.build_opener(); opener.addheaders = [("User-Agent", "sustenaut-review-site-build")]; \
-    urllib.request.install_opener(opener); \
-    [urllib.request.urlretrieve(u, "/sources/" + n) for n, u in json.load(open("/gathered.json"))["objects"].items() if u]'
-
 FROM docker.io/library/debian:stable-slim AS bundles
 COPY --from=pub /publet/target/release/pub /usr/local/bin/pub
 COPY publication-0/objects /objects
-COPY --from=sources /sources /objects
+# The paper extracts and what they cite, so a suggestion's members and a signed
+# concept's members show by name. storage.sustenaut.eu's `sources` tenant is
+# private, so the build doesn't fetch them: `python -m tools.sources fetch` puts
+# them in corpus/sources/objects/ first, with the token only outside the image.
+COPY corpus/sources/objects /objects
 RUN pub bundle --dir=/objects --out=/bundles --base=https://pub.sustenaut.eu
 
 FROM python:3.14-slim

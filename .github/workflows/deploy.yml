@@ -36,6 +36,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # The private sources tenant takes this job's OpenID Connect token.
+      - name: Fetch the paper extracts
+        run: python3 -m tools.sources fetch
+
       - uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ env.WIF_PROVIDER }}
