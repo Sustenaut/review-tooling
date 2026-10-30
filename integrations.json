@@ -1,0 +1,69 @@
+{
+  "uses": [
+    {
+      "plugin": "anthropic.api",
+      "paths": [
+        "review_tooling/suggest/draft.py"
+      ]
+    },
+    {
+      "plugin": "crossref.lookup",
+      "paths": [
+        "review_tooling/sources/add.py"
+      ]
+    },
+    {
+      "plugin": "github.actions-oidc",
+      "paths": [
+        "review_tooling/sources/__init__.py"
+      ]
+    },
+    {
+      "plugin": "github.app-token",
+      "paths": [
+        ".github/workflows/main.yml",
+        ".github/workflows/pr.yml"
+      ]
+    },
+    {
+      "plugin": "github.repo-ops",
+      "paths": [
+        ".github/workflows/wheel.yml",
+        "review_tooling/sources/__init__.py"
+      ]
+    },
+    {
+      "plugin": "google.cloud",
+      "paths": [
+        "review-site/review/auth.py",
+        "review-site/review/store.py"
+      ]
+    },
+    {
+      "plugin": "google.firestore",
+      "paths": [
+        "review-site/review/keys.py"
+      ]
+    },
+    {
+      "plugin": "sonarcloud.scan",
+      "paths": [
+        ".github/workflows/main.yml",
+        ".github/workflows/pr.yml"
+      ]
+    }
+  ],
+  "own_hosts": [
+    "sustenaut.eu"
+  ],
+  "exclude": [
+    {
+      "path": "tests/**",
+      "reason": "Fakes and test data"
+    },
+    {
+      "path": "corpus/**",
+      "reason": "Release records, not code"
+    }
+  ]
+}
