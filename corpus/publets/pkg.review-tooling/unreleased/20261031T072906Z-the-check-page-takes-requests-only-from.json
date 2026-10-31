@@ -1,4 +1,0 @@
-{
-  "category": "fixed",
-  "change": "The check page takes requests only from itself: another website can no longer record a finding or read the extracts while it runs, and its 404 no longer names the papers folder."
-}
