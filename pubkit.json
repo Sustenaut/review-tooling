@@ -11,7 +11,8 @@
   },
   "protect": {
     "checks": [
-      "ci / passed"
+      "ci / passed",
+      "integrations / scan"
     ],
     "tags": false
   }

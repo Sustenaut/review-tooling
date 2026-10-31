@@ -12,4 +12,4 @@ permissions:
 
 jobs:
   integrations:
-    uses: Sustenaut/integrations/.github/workflows/scan.yml@fbc2cae64d9eedec1db7b3449a89ac5afff33abb # main
+    uses: Sustenaut/integrations/.github/workflows/scan.yml@535f06d2ca3dc14b386245c03c0af0a30cf82128 # main
