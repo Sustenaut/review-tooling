@@ -4,53 +4,61 @@
       "plugin": "anthropic.api",
       "paths": [
         "review_tooling/suggest/draft.py"
-      ]
+      ],
+      "mode": "required"
     },
     {
       "plugin": "crossref.lookup",
       "paths": [
         "review_tooling/sources/add.py"
-      ]
+      ],
+      "mode": "required"
     },
     {
       "plugin": "github.actions-oidc",
       "paths": [
         "review_tooling/sources/__init__.py"
-      ]
+      ],
+      "mode": "required"
     },
     {
       "plugin": "github.app-token",
       "paths": [
         ".github/workflows/main.yml",
         ".github/workflows/pr.yml"
-      ]
+      ],
+      "mode": "required"
     },
     {
       "plugin": "github.repo-ops",
       "paths": [
         ".github/workflows/wheel.yml",
         "review_tooling/sources/__init__.py"
-      ]
+      ],
+      "mode": "required"
     },
     {
       "plugin": "google.cloud",
       "paths": [
         "review-site/review/auth.py",
         "review-site/review/store.py"
-      ]
+      ],
+      "mode": "required"
     },
     {
       "plugin": "google.firestore",
       "paths": [
         "review-site/review/keys.py"
-      ]
+      ],
+      "mode": "required"
     },
     {
       "plugin": "sonarcloud.scan",
       "paths": [
         ".github/workflows/main.yml",
         ".github/workflows/pr.yml"
-      ]
+      ],
+      "mode": "required"
     }
   ],
   "own_hosts": [
