@@ -1,4 +1,0 @@
-{
-  "category": "security",
-  "change": "upload refuses a file_sha256 that is not 64 hex characters before reading anything."
-}

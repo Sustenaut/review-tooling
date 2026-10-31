@@ -2,7 +2,7 @@
   "claims": {
     "identity": {
       "class": "archival",
-      "content": "review-tooling 0.1.0 is released as v0.1.0 from commit b977ee783bbedaa229f152aa192754da2e8c416f.",
+      "content": "review-tooling 0.1.1 is released as v0.1.1 from commit b60cc32b51fa43549e493c813d1b98622d0ec716.",
       "data": {
         "columns": [
           {
@@ -27,25 +27,25 @@
         "rows": [
           [
             "review-tooling",
-            "0.1.0",
+            "0.1.1",
             "",
             "",
-            "v0.1.0",
-            "b977ee783bbedaa229f152aa192754da2e8c416f"
+            "v0.1.1",
+            "b60cc32b51fa43549e493c813d1b98622d0ec716"
           ]
         ]
       },
-      "scope": "the published release v0.1.0 of review-tooling",
+      "scope": "the published release v0.1.1 of review-tooling",
       "sources": [
         {
           "ref": "review-tooling",
-          "revision": "b977ee783bbedaa229f152aa192754da2e8c416f"
+          "revision": "b60cc32b51fa43549e493c813d1b98622d0ec716"
         }
       ]
     },
     "release": {
       "class": "archival",
-      "content": "review-tooling 0.1.0 was released on 2026-10-30 from commit b977ee783bbedaa229f152aa192754da2e8c416f with these changes.",
+      "content": "review-tooling 0.1.1 was released on 2026-10-31 from commit b60cc32b51fa43549e493c813d1b98622d0ec716 with these changes.",
       "data": {
         "columns": [
           {
@@ -57,24 +57,28 @@
         ],
         "rows": [
           [
-            "added",
-            "First release: the facts, sources and suggest tools and the review service, split out of Sustenaut/business-plan."
+            "fixed",
+            "The check page takes requests only from itself: another website can no longer record a finding or read the extracts while it runs, and its 404 no longer names the papers folder."
+          ],
+          [
+            "security",
+            "upload refuses a file_sha256 that is not 64 hex characters before reading anything."
           ]
         ]
       },
       "depends": [
         "#identity"
       ],
-      "scope": "the published release v0.1.0 of review-tooling",
+      "scope": "the published release v0.1.1 of review-tooling",
       "sources": [
         {
           "ref": "review-tooling",
-          "revision": "b977ee783bbedaa229f152aa192754da2e8c416f"
+          "revision": "b60cc32b51fa43549e493c813d1b98622d0ec716"
         }
       ]
     }
   },
-  "created": "2026-10-30T00:00:00Z",
+  "created": "2026-10-31T00:00:00Z",
   "sections": [
     {
       "heading": "Identity",
