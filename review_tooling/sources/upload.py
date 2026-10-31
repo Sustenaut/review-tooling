@@ -13,6 +13,7 @@ upload repeated is the same file. The token is sources.token().
 from __future__ import annotations
 
 import json
+import re
 import urllib.request
 import uuid
 from pathlib import Path
@@ -20,6 +21,7 @@ from pathlib import Path
 from review_tooling import sources
 from review_tooling.sources import gather
 
+SHA256 = re.compile(r"[0-9a-f]{64}")
 ENDPOINT = f"{sources.STORAGE}/files"
 HOST = sources.STORAGE.rsplit("/", 1)[0]
 
@@ -52,6 +54,8 @@ def upload(papers: Path | None = None) -> dict:
             gather.write(gathered)
     for s in reg["sources"]:
         if s["id"] in gathered["items"] and sources.is_open(s) and not gathered["files"].get(s["id"]):
+            if not SHA256.fullmatch(s["file_sha256"]):
+                raise SystemExit(f"{s['id']}: file_sha256 is not 64 hex characters")
             answer = post(s["file_name"], (papers / f"{s['file_sha256']}.pdf").read_bytes(), s["short"], auth)
             if answer["id"] != s["file_sha256"]:
                 raise SystemExit(f"{s['id']}: storage named the PDF {answer['id']}, not {s['file_sha256']}")

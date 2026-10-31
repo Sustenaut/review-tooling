@@ -149,6 +149,12 @@ class Handler(BaseHTTPRequestHandler):
     papers: Path
     registry_path: Path | None = None
 
+    def local(self, value: str | None, prefix: str = "") -> bool:
+        """Whether a Host or Origin header names this page, not another site. Listening
+        on 127.0.0.1 doesn't stop a page in the browser from sending requests here."""
+        port = self.server.server_address[1]
+        return value in (f"{prefix}127.0.0.1:{port}", f"{prefix}localhost:{port}")
+
     def send(self, code: int, body: bytes, kind: str) -> None:
         self.send_response(code)
         self.send_header("Content-Type", kind)
@@ -158,6 +164,9 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self) -> None:  # noqa: N802
+        if not self.local(self.headers.get("Host")):
+            self.send(403, b"not this page's address", "text/plain")
+            return
         path = self.path.split("?", 1)[0]
         if path == "/":
             self.send(200, PAGE.encode(), "text/html; charset=utf-8")
@@ -169,11 +178,16 @@ class Handler(BaseHTTPRequestHandler):
             if len(sha) == 64 and all(c in "0123456789abcdef" for c in sha) and pdf.exists():
                 self.send(200, pdf.read_bytes(), "application/pdf")
             else:
-                self.send(404, f"{sha}.pdf is not in {self.papers}".encode(), "text/plain")
+                self.send(404, b"no such PDF", "text/plain")
         else:
             self.send(404, b"not found", "text/plain")
 
     def do_POST(self) -> None:  # noqa: N802
+        # A finding here is signed later with the reader's key, so only this page may send one.
+        if (not self.local(self.headers.get("Host")) or not self.local(self.headers.get("Origin"), "http://")
+                or self.headers.get("Content-Type") != "application/json"):
+            self.send(403, b"only this page may record a finding", "text/plain")
+            return
         if self.path != "/api/check":
             self.send(404, b"not found", "text/plain")
             return
