@@ -7,14 +7,17 @@ also tests its own data.
 from __future__ import annotations
 
 import copy
+import http.client
 import json
 import os
+import threading
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 
 import pytest
 
 from review_tooling import sources
-from review_tooling.sources import gather, review
+from review_tooling.sources import gather, review, upload
 
 
 @pytest.fixture
@@ -173,3 +176,84 @@ def test_fetch_names_itself_because_cloudflare_refuses_pythons_default(tmp_path,
     assert (tmp_path / "a.cbor").read_bytes() == b"content"
     assert asked[0].get_header("User-agent") == "sustenaut-sources"
     assert asked[0].get_header("Authorization") == "Bearer a-token"
+
+
+# --- the check page: only this page may use it --------------------------------
+
+@pytest.fixture
+def page(reg, tmp_path, monkeypatch):
+    path = tmp_path / "sources.json"
+    path.write_text(json.dumps(reg))
+    (tmp_path / ("a" * 64 + ".pdf")).write_bytes(b"%PDF")
+    monkeypatch.setattr(review.Handler, "papers", tmp_path, raising=False)
+    monkeypatch.setattr(review.Handler, "registry_path", path)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), review.Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    yield server.server_address[1], path
+    server.shutdown()
+    server.server_close()
+
+
+def ask(port, method, target, body=None, **headers):
+    connection = http.client.HTTPConnection("127.0.0.1", port)
+    connection.putrequest(method, target, skip_host=True, skip_accept_encoding=True)
+    data = json.dumps(body).encode() if body is not None else b""
+    for name, value in {"Host": f"127.0.0.1:{port}", "Content-Length": str(len(data)), **headers}.items():
+        connection.putheader(name.replace("_", "-"), value)
+    connection.endheaders(data)
+    reply = connection.getresponse()
+    return reply.status, reply.read()
+
+
+FINDING = {"id": "e.maple_2024.pump_energy", "finding": "affirm"}
+
+
+def test_the_page_records_a_finding_from_itself(page):
+    port, path = page
+    status, _ = ask(port, "POST", "/api/check", FINDING, Origin=f"http://127.0.0.1:{port}", Content_Type="application/json")
+    assert status == 200 and extract(json.loads(path.read_text()), FINDING["id"])["checked"]["finding"] == "affirm"
+    status, _ = ask(port, "POST", "/api/check", FINDING, Host=f"localhost:{port}", Origin=f"http://localhost:{port}",
+                    Content_Type="application/json")
+    assert status == 200
+
+
+@pytest.mark.parametrize("headers", [
+    {"Origin": "https://evil.example", "Content_Type": "application/json"},
+    {"Content_Type": "application/json"},  # no Origin at all
+    {"Origin": "http://127.0.0.1:1", "Content_Type": "application/json"},  # another local port
+    {"Origin": "PAGE", "Content_Type": "text/plain"},  # what a form may send without asking
+    {"Origin": "PAGE"},
+    {"Origin": "PAGE", "Content_Type": "application/json", "Host": "evil.example"},  # DNS rebinding
+])
+def test_a_finding_from_anywhere_else_changes_nothing(page, headers):
+    port, path = page
+    before = path.read_text()
+    filled = {k: f"http://127.0.0.1:{port}" if v == "PAGE" else v for k, v in headers.items()}
+    status, _ = ask(port, "POST", "/api/check", FINDING, **filled)
+    assert status == 403 and path.read_text() == before
+
+
+def test_another_host_reads_nothing(page):
+    port, _ = page
+    assert ask(port, "GET", "/api/extracts", Host="evil.example")[0] == 403
+    assert ask(port, "GET", "/", Host="evil.example")[0] == 403
+    assert ask(port, "GET", "/api/extracts")[0] == 200
+
+
+def test_a_pdf_is_served_by_its_sha_and_a_miss_names_no_folder(page, tmp_path):
+    port, _ = page
+    assert ask(port, "GET", f"/pdf/{'a' * 64}.pdf") == (200, b"%PDF")
+    status, body = ask(port, "GET", "/pdf/../../secret.pdf")
+    assert status == 404 and str(tmp_path).encode() not in body and b"secret" not in body
+
+
+def test_upload_refuses_a_sha_that_is_not_one_before_reading_anything(reg, tmp_path, monkeypatch):
+    reg["sources"][0]["file_sha256"] = "../../secret"
+    (tmp_path.parent / "secret.pdf").write_bytes(b"not to be read")
+    monkeypatch.setattr(sources, "registry", lambda *_: reg)
+    monkeypatch.setattr(sources, "token", lambda: "t")
+    monkeypatch.setattr(gather, "load_gathered", lambda *_: {
+        "keys": {}, "objects": {}, "files": {}, "items": {reg["sources"][0]["id"]: {"cid": "x"}}})
+    monkeypatch.setattr(upload, "post", lambda *_: pytest.fail("nothing is uploaded"))
+    with pytest.raises(SystemExit, match="not 64 hex"):
+        upload.upload(tmp_path)
