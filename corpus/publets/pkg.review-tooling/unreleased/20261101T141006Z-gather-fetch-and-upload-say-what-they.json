@@ -1,0 +1,4 @@
+{
+  "category": "added",
+  "change": "gather, fetch and upload say what they are doing on stderr: a line when a step starts, a count every few seconds, and how long it took. REVIEW_TOOLING_QUIET=1 turns it off."
+}
