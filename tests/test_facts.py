@@ -89,6 +89,17 @@ def test_an_objects_address_is_the_sha256_its_name_holds():
     assert gather.storage_id(name) == hashlib.sha256(data).hexdigest()
 
 
+@pytest.mark.parametrize("name", ["../../secret.cbor", "pub_sha2-256_short.cbor", "a.pdf",
+                                  "pub_sha2-256_" + "a" * 52 + ".cbor/../x"])
+def test_a_record_that_is_not_an_objects_name_reaches_nothing(name, tmp_path, monkeypatch):
+    asked = _storage(monkeypatch, {})
+    with pytest.raises(gather.GatherError, match="is not an object's name"):
+        gather.fetch({"objects": [name], "items": {}}, tmp_path)
+    with pytest.raises(gather.GatherError, match="is not an object's name"):
+        gather.upload({"objects": [name], "items": {}}, tmp_path)
+    assert asked == []
+
+
 def _storage(monkeypatch, holding: dict[str, bytes]) -> list:
     asked = []
 

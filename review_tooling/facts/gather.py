@@ -42,6 +42,7 @@ import functools
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -61,6 +62,10 @@ UNIT_KIND = {"m2": "k.area", "har": "k.area", "A": "k.current", "mm": "k.length"
 
 class GatherError(RuntimeError):
     pass
+
+
+OBJECT_PREFIX = "pub_sha2-256_"
+OBJECT_NAME = re.compile(rf"{OBJECT_PREFIX}([a-z2-7]{{52}})\.cbor")
 
 
 # --- inputs and digests: pure, and the same in `check` -----------------------
@@ -149,8 +154,12 @@ def filename(cid: str) -> str:
 
 
 def storage_id(name: str) -> str:
-    """The SHA-256 storage names an object's file by, which its identifier holds in base32."""
-    digest = name.removeprefix("pub_sha2-256_").removesuffix(".cbor").upper()
+    """The SHA-256 storage names an object's file by, which its identifier holds in base32.
+    Anything but an object's name is refused, so a record can't reach another address or file."""
+    found = OBJECT_NAME.fullmatch(name)
+    if not found:
+        raise GatherError(f"{name!r} is not an object's name")
+    digest = found[1].upper()
     return base64.b32decode(digest + "=" * (-len(digest) % 8)).hex()
 
 
@@ -163,11 +172,12 @@ def fetch(gathered: dict, into: Path | None = None) -> None:
     into.mkdir(parents=True, exist_ok=True)
     auth = None
     for name in gathered["objects"]:
-        target = into / name
+        sha256 = storage_id(name)
+        target = into / f"{OBJECT_PREFIX}{base64.b32encode(bytes.fromhex(sha256)).decode().lower().rstrip('=')}.cbor"
         if target.exists():
             continue
         auth = auth or sources.token()
-        request = urllib.request.Request(f"{STORAGE}/f/{storage_id(name)}/{name}", headers={
+        request = urllib.request.Request(f"{STORAGE}/f/{sha256}/{target.name}", headers={
             "User-Agent": "sustenaut-sources", "Authorization": f"Bearer {auth}"})
         with urllib.request.urlopen(request) as r:  # noqa: S310 (our own storage)
             data = r.read()
@@ -186,9 +196,10 @@ def upload(gathered: dict | None = None, objects: Path | None = None) -> int:
     objects = OBJECTS if objects is None else objects
     auth = sources.token()
     for name in gathered["objects"]:
+        sha256 = storage_id(name)
         answer = post(name, (objects / name).read_bytes(), "publet object", auth, f"{STORAGE}/files")
-        if answer["id"] != storage_id(name):
-            raise GatherError(f"{name}: storage named it {answer['id']}, not {storage_id(name)}")
+        if answer["id"] != sha256:
+            raise GatherError(f"{name}: storage named it {answer['id']}, not {sha256}")
     return len(gathered["objects"])
 
 
