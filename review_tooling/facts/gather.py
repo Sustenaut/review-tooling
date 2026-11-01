@@ -46,10 +46,12 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from review_tooling import progress
 from review_tooling.facts import OBJECTS, REGISTRY, ROOT, STORAGE, registry
 
 KEY_ID = ROOT / "corpus" / "key"
@@ -171,6 +173,8 @@ def fetch(gathered: dict, into: Path | None = None) -> None:
     into = OBJECTS if into is None else into
     into.mkdir(parents=True, exist_ok=True)
     auth = None
+    missing = [n for n in gathered["objects"] if not (into / n).exists()]
+    steps = progress.Steps("fetching objects from storage", len(missing)) if missing else None
     for name in gathered["objects"]:
         sha256 = storage_id(name)
         target = into / f"{OBJECT_PREFIX}{base64.b32encode(bytes.fromhex(sha256)).decode().lower().rstrip('=')}.cbor"
@@ -184,6 +188,7 @@ def fetch(gathered: dict, into: Path | None = None) -> None:
         if filename(cid_of(data)) != name:
             raise GatherError(f"{name}: what storage holds does not hash to its name")
         target.write_bytes(data)
+        steps.tick()
 
 
 def upload(gathered: dict | None = None, objects: Path | None = None) -> int:
@@ -195,11 +200,13 @@ def upload(gathered: dict | None = None, objects: Path | None = None) -> int:
     gathered = load_gathered() if gathered is None else gathered
     objects = OBJECTS if objects is None else objects
     auth = sources.token()
+    steps = progress.Steps("uploading objects to storage", len(gathered["objects"]))
     for name in gathered["objects"]:
         sha256 = storage_id(name)
         answer = post(name, (objects / name).read_bytes(), "publet object", auth, f"{STORAGE}/files")
         if answer["id"] != sha256:
             raise GatherError(f"{name}: storage named it {answer['id']}, not {sha256}")
+        steps.tick()
     return len(gathered["objects"])
 
 
@@ -380,11 +387,14 @@ class Workspace:
         """Put every committed object in the workspace's store, so what is
         composed is checked against them and can supersede them."""
         store = store_binary(self.pub)
-        for path in sorted(objects.glob("*.cbor")):
+        paths = sorted(objects.glob("*.cbor"))
+        steps = progress.Steps("loading objects into the workspace", len(paths)) if paths else None
+        for path in paths:
             out = subprocess.run([store, "--store=.publet/objects.redb", "add"], cwd=self.root,
                                  input=path.read_bytes(), capture_output=True)
             if out.returncode != 0:
                 raise GatherError(f"pub-store add {path.name}: {out.stderr.decode().strip()}")
+            steps.tick()
 
 
 def use_key(ws: Workspace, created: str, *, sign: bool = True) -> str:
@@ -452,6 +462,7 @@ def gather(path: Path = REGISTRY, *, sign: bool = True) -> Plan:
     """
     reg = registry(path)
     gathered = load_gathered()
+    start = time.monotonic()
     fetch(gathered)
     root = Path(tempfile.mkdtemp(prefix="facts-"))
     try:
@@ -464,9 +475,11 @@ def gather(path: Path = REGISTRY, *, sign: bool = True) -> Plan:
         cids = {k: v["cid"] for k, v in recorded.items()}
         first = not recorded
         made: list[str] = []
+        steps = progress.Steps("composing items", len(its) - len(p.keep)) if len(its) > len(p.keep) else None
         for item in its:
             if item.id in p.keep:
                 continue
+            steps.tick()
             created = reg["created"] if item.id in p.compose and first else now()
             cid = compose(ws, item, cids, created)
             made.append(cid)
@@ -490,14 +503,17 @@ def gather(path: Path = REGISTRY, *, sign: bool = True) -> Plan:
                 gathered["objects"] = sorted(p.name for p in OBJECTS.glob("*.cbor"))
                 GATHERED.write_text(json.dumps({"comment": COMMENT, "key": key, **gathered}, indent=1) + "\n")
             return p
+        steps = progress.Steps("signing objects", len(made)) if made else None
         for cid in made:
             ws.run("sign", f"--purpose={PURPOSE}", f"--target={cid}", f"--created={now()}")
+            steps.tick()
         added = export(ws)
         gathered["objects"] = sorted(set(gathered["objects"]) | added
                                      | {p.name for p in OBJECTS.glob("*.cbor")})
         GATHERED.write_text(json.dumps({"comment": COMMENT, "key": key, **gathered}, indent=1) + "\n")
         print(f"kept {len(p.keep)}, composed {len(p.compose)}, revised {len(p.revise)}, "
-              f"retracted {len(p.retract)}; {len(added)} object(s) added to {OBJECTS}")
+              f"retracted {len(p.retract)}; {len(added)} object(s) added to {OBJECTS} "
+              f"in {progress.elapsed(start)}")
         return p
     finally:
         shutil.rmtree(root, ignore_errors=True)

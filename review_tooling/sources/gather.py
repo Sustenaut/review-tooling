@@ -36,10 +36,11 @@ import json
 import os
 import shutil
 import tempfile
+import time
 import urllib.request
 from pathlib import Path
 
-from review_tooling import sources
+from review_tooling import progress, sources
 from review_tooling.facts import gather as fg
 from review_tooling.facts.gather import GatherError, Item, Plan, Workspace, filename, pub_binary
 
@@ -252,6 +253,8 @@ def fetch(gathered: dict, into: Path) -> None:
     """Every recorded object not in the cache, from storage, whose `sources` tenant is private."""
     into.mkdir(parents=True, exist_ok=True)
     auth = None
+    missing = [n for n in gathered["objects"] if not (into / n).exists()]
+    steps = progress.Steps("fetching objects from storage", len(missing)) if missing else None
     for name, url in gathered["objects"].items():
         target = into / name
         if not target.exists():
@@ -263,6 +266,7 @@ def fetch(gathered: dict, into: Path) -> None:
                                                            "Authorization": f"Bearer {auth}"})
             with urllib.request.urlopen(request) as r:  # noqa: S310 (our own storage)
                 target.write_bytes(r.read())
+            steps.tick()
 
 
 def compose(ws: Workspace, item: Item, cids: dict[str, str], created: str) -> str:
@@ -304,6 +308,7 @@ def gather(path: Path | None = None) -> Plan:
     """Gather the checked part of the registry by the rules above."""
     reg = sources.registry(path)
     gathered = load_gathered()
+    start = time.monotonic()
     root = Path(tempfile.mkdtemp(prefix="sources-"))
     try:
         ws = Workspace(pub_binary(), root)
@@ -316,6 +321,7 @@ def gather(path: Path | None = None) -> Plan:
         cids = known_cids(gathered)
         recorded = gathered["items"]
         made: list[tuple[str, str]] = []
+        steps = progress.Steps("composing and signing items", len(its) - len(p.keep)) if len(its) > len(p.keep) else None
 
         def make(name: str, *args: str) -> str:
             ws.become(gathered["keys"][name], secrets[name])
@@ -327,6 +333,7 @@ def gather(path: Path | None = None) -> Plan:
         for item in its:
             if item.id in p.keep:
                 continue
+            steps.tick()
             created = reg["created"] if item.id in p.compose and first else fg.now()
             name = signer(item)
             ws.become(gathered["keys"][name], secrets[name])
@@ -349,7 +356,7 @@ def gather(path: Path | None = None) -> Plan:
             gathered["objects"].setdefault(name, None)
         write(gathered)
         print(f"kept {len(p.keep)}, composed {len(p.compose)}, revised {len(p.revise)}, "
-              f"retracted {len(p.retract)}; {len(added)} object(s) added to {OBJECTS}; "
+              f"retracted {len(p.retract)}; {len(added)} object(s) added to {OBJECTS} in {progress.elapsed(start)}; "
               f"run `python -m review_tooling.sources upload` next")
         return p
     finally:

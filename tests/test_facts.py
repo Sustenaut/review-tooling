@@ -123,6 +123,15 @@ def test_fetch_takes_what_is_missing_with_a_token_and_checks_each(tmp_path, monk
     assert asked[0].get_header("Authorization") == "Bearer a-token"
 
 
+def test_fetch_says_what_it_is_fetching_and_nothing_when_all_is_here(tmp_path, monkeypatch, capsys):
+    name = gather.filename(gather.cid_of(b"one"))
+    _storage(monkeypatch, {name: b"one"})
+    gather.fetch(_gathered(b"one"), tmp_path)
+    assert "fetching objects from storage: 1" in capsys.readouterr().err
+    gather.fetch(_gathered(b"one"), tmp_path)
+    assert capsys.readouterr().err == ""
+
+
 def test_fetch_refuses_bytes_that_do_not_hash_to_the_name(tmp_path, monkeypatch):
     name = gather.filename(gather.cid_of(b"signed"))
     _storage(monkeypatch, {name: b"changed"})
