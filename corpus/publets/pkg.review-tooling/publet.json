@@ -2,7 +2,7 @@
   "claims": {
     "identity": {
       "class": "archival",
-      "content": "review-tooling 0.1.1 is released as v0.1.1 from commit b60cc32b51fa43549e493c813d1b98622d0ec716.",
+      "content": "review-tooling 0.1.2 is released as v0.1.2 from commit 76afbc5e6d49976e6007af7c658c0cbec1d13c07.",
       "data": {
         "columns": [
           {
@@ -27,25 +27,25 @@
         "rows": [
           [
             "review-tooling",
-            "0.1.1",
+            "0.1.2",
             "",
             "",
-            "v0.1.1",
-            "b60cc32b51fa43549e493c813d1b98622d0ec716"
+            "v0.1.2",
+            "76afbc5e6d49976e6007af7c658c0cbec1d13c07"
           ]
         ]
       },
-      "scope": "the published release v0.1.1 of review-tooling",
+      "scope": "the published release v0.1.2 of review-tooling",
       "sources": [
         {
           "ref": "review-tooling",
-          "revision": "b60cc32b51fa43549e493c813d1b98622d0ec716"
+          "revision": "76afbc5e6d49976e6007af7c658c0cbec1d13c07"
         }
       ]
     },
     "release": {
       "class": "archival",
-      "content": "review-tooling 0.1.1 was released on 2026-10-31 from commit b60cc32b51fa43549e493c813d1b98622d0ec716 with these changes.",
+      "content": "review-tooling 0.1.2 was released on 2026-11-01 from commit 76afbc5e6d49976e6007af7c658c0cbec1d13c07 with these changes.",
       "data": {
         "columns": [
           {
@@ -57,28 +57,24 @@
         ],
         "rows": [
           [
-            "fixed",
-            "The check page takes requests only from itself: another website can no longer record a finding or read the extracts while it runs, and its 404 no longer names the papers folder."
-          ],
-          [
-            "security",
-            "upload refuses a file_sha256 that is not 64 hex characters before reading anything."
+            "added",
+            "facts fetch and upload keep the signed objects in storage.sustenaut.eu's private facts tenant: gather and get fetch what is missing, each checked against its name, and check works without a local copy."
           ]
         ]
       },
       "depends": [
         "#identity"
       ],
-      "scope": "the published release v0.1.1 of review-tooling",
+      "scope": "the published release v0.1.2 of review-tooling",
       "sources": [
         {
           "ref": "review-tooling",
-          "revision": "b60cc32b51fa43549e493c813d1b98622d0ec716"
+          "revision": "76afbc5e6d49976e6007af7c658c0cbec1d13c07"
         }
       ]
     }
   },
-  "created": "2026-10-31T00:00:00Z",
+  "created": "2026-11-01T00:00:00Z",
   "sections": [
     {
       "heading": "Identity",
