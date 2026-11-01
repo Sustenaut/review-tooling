@@ -21,13 +21,14 @@ def elapsed(start: float) -> str:
 
 class Steps:
     """Says a step's start, then how far along it is whenever EVERY seconds have passed,
-    and its end only if it said a count on the way."""
+    and its end only if it said a count on the way. A step with nothing to do says nothing."""
 
     def __init__(self, what: str, total: int):
         self.what, self.total, self.done = what, total, 0
         self.start = self.last = time.monotonic()
         self.counted = False
-        say(f"{what}: {total}")
+        if total:
+            say(f"{what}: {total}")
 
     def tick(self) -> None:
         self.done += 1

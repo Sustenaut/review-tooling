@@ -254,7 +254,7 @@ def fetch(gathered: dict, into: Path) -> None:
     into.mkdir(parents=True, exist_ok=True)
     auth = None
     missing = [n for n in gathered["objects"] if not (into / n).exists()]
-    steps = progress.Steps("fetching objects from storage", len(missing)) if missing else None
+    steps = progress.Steps("fetching objects from storage", len(missing))
     for name, url in gathered["objects"].items():
         target = into / name
         if not target.exists():
@@ -321,7 +321,7 @@ def gather(path: Path | None = None) -> Plan:
         cids = known_cids(gathered)
         recorded = gathered["items"]
         made: list[tuple[str, str]] = []
-        steps = progress.Steps("composing and signing items", len(its) - len(p.keep)) if len(its) > len(p.keep) else None
+        steps = progress.Steps("composing and signing items", len(its) - len(p.keep))
 
         def make(name: str, *args: str) -> str:
             ws.become(gathered["keys"][name], secrets[name])

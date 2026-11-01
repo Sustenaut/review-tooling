@@ -174,7 +174,7 @@ def fetch(gathered: dict, into: Path | None = None) -> None:
     into.mkdir(parents=True, exist_ok=True)
     auth = None
     missing = [n for n in gathered["objects"] if not (into / n).exists()]
-    steps = progress.Steps("fetching objects from storage", len(missing)) if missing else None
+    steps = progress.Steps("fetching objects from storage", len(missing))
     for name in gathered["objects"]:
         sha256 = storage_id(name)
         target = into / f"{OBJECT_PREFIX}{base64.b32encode(bytes.fromhex(sha256)).decode().lower().rstrip('=')}.cbor"
@@ -388,7 +388,7 @@ class Workspace:
         composed is checked against them and can supersede them."""
         store = store_binary(self.pub)
         paths = sorted(objects.glob("*.cbor"))
-        steps = progress.Steps("loading objects into the workspace", len(paths)) if paths else None
+        steps = progress.Steps("loading objects into the workspace", len(paths))
         for path in paths:
             out = subprocess.run([store, "--store=.publet/objects.redb", "add"], cwd=self.root,
                                  input=path.read_bytes(), capture_output=True)
@@ -475,7 +475,7 @@ def gather(path: Path = REGISTRY, *, sign: bool = True) -> Plan:
         cids = {k: v["cid"] for k, v in recorded.items()}
         first = not recorded
         made: list[str] = []
-        steps = progress.Steps("composing items", len(its) - len(p.keep)) if len(its) > len(p.keep) else None
+        steps = progress.Steps("composing items", len(its) - len(p.keep))
         for item in its:
             if item.id in p.keep:
                 continue
@@ -503,7 +503,7 @@ def gather(path: Path = REGISTRY, *, sign: bool = True) -> Plan:
                 gathered["objects"] = sorted(p.name for p in OBJECTS.glob("*.cbor"))
                 GATHERED.write_text(json.dumps({"comment": COMMENT, "key": key, **gathered}, indent=1) + "\n")
             return p
-        steps = progress.Steps("signing objects", len(made)) if made else None
+        steps = progress.Steps("signing objects", len(made))
         for cid in made:
             ws.run("sign", f"--purpose={PURPOSE}", f"--target={cid}", f"--created={now()}")
             steps.tick()

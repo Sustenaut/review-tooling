@@ -27,6 +27,11 @@ def test_a_slow_step_counts_every_few_seconds_and_says_how_long_it_took(capsys, 
         "fetching objects: 5", "  2/5", "  4/5", "  5/5 in 1m 20s"]
 
 
+def test_a_step_with_nothing_to_do_says_nothing(capsys):
+    progress.Steps("composing items", 0)
+    assert capsys.readouterr().err == ""
+
+
 def test_quiet_says_nothing(capsys, monkeypatch):
     monkeypatch.setenv("REVIEW_TOOLING_QUIET", "1")
     clock(monkeypatch, 0, 20, 40, 60)
