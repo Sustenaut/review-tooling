@@ -27,6 +27,7 @@ from pathlib import Path
 ROOT = Path(os.environ.get("SOURCES_ROOT") or Path.cwd()).resolve()
 REGISTRY = ROOT / "corpus" / "registry.json"
 OBJECTS = ROOT / "corpus" / "objects"
+STORAGE = "https://storage.sustenaut.eu/facts"
 PROSE = ("plan-doc", "plans", "opportunities")
 
 # How each unit the registry uses is written in prose. Matched after a

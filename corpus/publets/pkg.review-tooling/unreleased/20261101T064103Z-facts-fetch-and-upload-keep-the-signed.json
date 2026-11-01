@@ -1,0 +1,4 @@
+{
+  "category": "added",
+  "change": "facts fetch and upload keep the signed objects in storage.sustenaut.eu's private facts tenant: gather and get fetch what is missing, each checked against its name, and check works without a local copy."
+}

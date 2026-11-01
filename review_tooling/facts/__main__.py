@@ -1,4 +1,4 @@
-"""python -m review_tooling.facts gather [--adopt] | check | get PATH | lint (see review_tooling/facts/__init__.py)."""
+"""python -m review_tooling.facts gather [--adopt] | check | get PATH | fetch | upload | lint (see review_tooling/facts/__init__.py)."""
 
 from __future__ import annotations
 
@@ -15,11 +15,28 @@ def main(argv: list[str]) -> int:
 
             gather.gather()
             return 0
+        case ["fetch"]:
+            from review_tooling.facts import gather
+
+            recorded = gather.load_gathered()
+            gather.fetch(recorded)
+            problems = gather.check(gathered=recorded)
+            for problem in problems:
+                print(problem)
+            print(f"{facts.OBJECTS} holds the {len(recorded['objects'])} gathered object(s)")
+            return 1 if problems else 0
+        case ["upload"]:
+            from review_tooling.facts import gather
+
+            print(f"{gather.upload()} object(s) on {facts.STORAGE}")
+            return 0
         case ["get", path]:
+            from review_tooling.facts import gather
             from review_tooling.facts.gather import pub_binary
 
             from review_tooling.facts.gather import require_pub
 
+            gather.fetch(gather.load_gathered())
             return subprocess.run([require_pub(pub_binary()), "get", path, f"--dir={facts.OBJECTS}"]).returncode
         case ["gather", "--adopt"]:
             from review_tooling.facts import gather

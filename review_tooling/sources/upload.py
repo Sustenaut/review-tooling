@@ -26,7 +26,7 @@ ENDPOINT = f"{sources.STORAGE}/files"
 HOST = sources.STORAGE.rsplit("/", 1)[0]
 
 
-def post(name: str, data: bytes, label: str, auth: str) -> dict:
+def post(name: str, data: bytes, label: str, auth: str, endpoint: str = ENDPOINT) -> dict:
     """One multipart upload: the file, its name, a label, kept."""
     boundary = uuid.uuid4().hex
     parts = []
@@ -35,7 +35,7 @@ def post(name: str, data: bytes, label: str, auth: str) -> dict:
     parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{name}"\r\n'
                  f"Content-Type: application/octet-stream\r\n\r\n".encode() + data + b"\r\n")
     body = b"".join(parts) + f"--{boundary}--\r\n".encode()
-    request = urllib.request.Request(ENDPOINT, data=body, method="POST", headers={
+    request = urllib.request.Request(endpoint, data=body, method="POST", headers={
         "Authorization": f"Bearer {auth}", "Content-Type": f"multipart/form-data; boundary={boundary}",
         "User-Agent": "sustenaut-sources"})
     with urllib.request.urlopen(request, timeout=120) as r:  # noqa: S310 (our own storage)

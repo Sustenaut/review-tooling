@@ -42,13 +42,15 @@ import functools
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
+import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from review_tooling.facts import OBJECTS, REGISTRY, ROOT, registry
+from review_tooling.facts import OBJECTS, REGISTRY, ROOT, STORAGE, registry
 
 KEY_ID = ROOT / "corpus" / "key"
 GATHERED = ROOT / "corpus" / "gathered.json"
@@ -60,6 +62,10 @@ UNIT_KIND = {"m2": "k.area", "har": "k.area", "A": "k.current", "mm": "k.length"
 
 class GatherError(RuntimeError):
     pass
+
+
+OBJECT_PREFIX = "pub_sha2-256_"
+OBJECT_NAME = re.compile(rf"{OBJECT_PREFIX}([a-z2-7]{{52}})\.cbor")
 
 
 # --- inputs and digests: pure, and the same in `check` -----------------------
@@ -147,6 +153,56 @@ def filename(cid: str) -> str:
     return cid.replace(":", "_") + ".cbor"
 
 
+def storage_id(name: str) -> str:
+    """The SHA-256 storage names an object's file by, which its identifier holds in base32.
+    Anything but an object's name is refused, so a record can't reach another address or file."""
+    found = OBJECT_NAME.fullmatch(name)
+    if not found:
+        raise GatherError(f"{name!r} is not an object's name")
+    digest = found[1].upper()
+    return base64.b32decode(digest + "=" * (-len(digest) % 8)).hex()
+
+
+def fetch(gathered: dict, into: Path | None = None) -> None:
+    """Every recorded object not in the local copy, from the private `facts` tenant.
+    Each is checked against its name, so storage can't change what was signed."""
+    from review_tooling import sources  # noqa: PLC0415 (sources imports this package)
+
+    into = OBJECTS if into is None else into
+    into.mkdir(parents=True, exist_ok=True)
+    auth = None
+    for name in gathered["objects"]:
+        sha256 = storage_id(name)
+        target = into / f"{OBJECT_PREFIX}{base64.b32encode(bytes.fromhex(sha256)).decode().lower().rstrip('=')}.cbor"
+        if target.exists():
+            continue
+        auth = auth or sources.token()
+        request = urllib.request.Request(f"{STORAGE}/f/{sha256}/{target.name}", headers={
+            "User-Agent": "sustenaut-sources", "Authorization": f"Bearer {auth}"})
+        with urllib.request.urlopen(request) as r:  # noqa: S310 (our own storage)
+            data = r.read()
+        if filename(cid_of(data)) != name:
+            raise GatherError(f"{name}: what storage holds does not hash to its name")
+        target.write_bytes(data)
+
+
+def upload(gathered: dict | None = None, objects: Path | None = None) -> int:
+    """Every recorded object to the `facts` tenant, kept. A file's address is its
+    SHA-256, so uploading one again changes nothing."""
+    from review_tooling import sources  # noqa: PLC0415 (sources imports this package)
+    from review_tooling.sources.upload import post  # noqa: PLC0415
+
+    gathered = load_gathered() if gathered is None else gathered
+    objects = OBJECTS if objects is None else objects
+    auth = sources.token()
+    for name in gathered["objects"]:
+        sha256 = storage_id(name)
+        answer = post(name, (objects / name).read_bytes(), "publet object", auth, f"{STORAGE}/files")
+        if answer["id"] != sha256:
+            raise GatherError(f"{name}: storage named it {answer['id']}, not {sha256}")
+    return len(gathered["objects"])
+
+
 def load_gathered(path: Path | None = None) -> dict:
     path = GATHERED if path is None else path
     if path.exists():
@@ -183,7 +239,9 @@ def plan(its: list[Item], gathered: dict) -> Plan:
 
 def check(reg: dict | None = None, gathered: dict | None = None, objects: Path | None = None) -> list[str]:
     """Problems with corpus/: what a gather would change, and files that do
-    not belong. Empty means the registry, the record and the objects agree."""
+    not belong. Empty means the registry, the record and the objects agree.
+    Without a local copy of the objects (`fetch` makes one), only the registry and
+    the record are compared."""
     reg = registry() if reg is None else reg
     gathered = load_gathered() if gathered is None else gathered
     objects = OBJECTS if objects is None else objects
@@ -192,16 +250,18 @@ def check(reg: dict | None = None, gathered: dict | None = None, objects: Path |
     problems += [f"{i}: in the registry but never gathered" for i in p.compose]
     problems += [f"{i}: changed in the registry since it was gathered" for i in p.revise]
     problems += [f"{i}: gathered but gone from the registry, and not retracted" for i in p.retract]
-    files = {path.name for path in objects.glob("*.cbor")}
     listed = set(gathered["objects"])
+    for i, entry in gathered["items"].items():
+        if filename(entry["cid"]) not in listed:
+            problems.append(f"{i}: its object {entry['cid']} is not recorded")
+    if not objects.is_dir():
+        return problems
+    files = {path.name for path in objects.glob("*.cbor")}
     problems += [f"{name}: in corpus/objects but not recorded by any gather" for name in sorted(files - listed)]
     problems += [f"{name}: recorded but missing from corpus/objects" for name in sorted(listed - files)]
     for name in sorted(files & listed):
         if filename(cid_of((objects / name).read_bytes())) != name:
             problems.append(f"{name}: its bytes do not hash to its name")
-    for i, entry in gathered["items"].items():
-        if filename(entry["cid"]) not in listed:
-            problems.append(f"{i}: its object {entry['cid']} is not recorded")
     return problems
 
 
@@ -392,6 +452,7 @@ def gather(path: Path = REGISTRY, *, sign: bool = True) -> Plan:
     """
     reg = registry(path)
     gathered = load_gathered()
+    fetch(gathered)
     root = Path(tempfile.mkdtemp(prefix="facts-"))
     try:
         its = items(reg)

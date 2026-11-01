@@ -25,6 +25,10 @@ python -m review_tooling.facts lint
 python -m review_tooling.sources check
 ```
 
+The signed objects aren't in git: `facts fetch` and `facts upload`, and `sources fetch` and
+`sources upload`, move them to and from private tenants on storage.sustenaut.eu with
+`$SOURCES_TOKEN`, the job's OpenID Connect token, or `gh auth token`.
+
 The suggestion job also needs `review-tooling[suggest]`. Gathering and
 signing need a `pub` from publet-cli.
 
