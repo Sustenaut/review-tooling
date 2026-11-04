@@ -1,6 +1,6 @@
 """Who is reviewing.
 
-Two logins, set by REVIEW_LOGIN:
+The logins, set by REVIEW_LOGIN:
 
 - ``iap`` (the default): the service sits behind Google's Identity-Aware Proxy
   (IAP) like the planning app and pub.sustenaut.eu. IAP signs each request with
@@ -14,10 +14,20 @@ Two logins, set by REVIEW_LOGIN:
 - ``iap+wallet``: both, while the team has no wallets yet. IAP still decides
   who reaches the service at all; a team member may then sign in with a wallet,
   and reviews they sign from then on are the wallet account's.
+- ``team``: the service sits behind oauth2-proxy on the Sustenaut k3s server,
+  signed in with the team realm at auth.sustenaut.eu. The proxy passes the
+  verified email in X-Forwarded-Email and the access token in
+  X-Forwarded-Access-Token, replacing whatever the browser sent, and only the
+  proxy can reach the service (a network policy). On each request the service
+  asks whether the person still has the role ``review`` (access_check.py, a
+  copy of Sustenaut/auth's). The account is the email, as with IAP, so a
+  reviewer keeps their key.
+- ``team+wallet``: ``team`` deciding who gets in, with the wallet sign-in
+  offered inside it, as ``iap+wallet`` is for IAP.
 
 Everything else asks only for a `Reviewer`, so the login touches this file and
 nothing more. Locally, set REVIEW_DEV_USER to your email instead; it is refused
-on Cloud Run.
+on Cloud Run and on Kubernetes.
 """
 from __future__ import annotations
 
@@ -44,6 +54,7 @@ IAP_ISSUER = "https://cloud.google.com/iap"
 # by a wallet-signed statement, replaces that later.
 ASSURANCE = {
     "iap": "team login, key held by Sustenaut",
+    "team": "team login, key held by Sustenaut",
     "dev": "team login, key held by Sustenaut",
     "wallet": "EU wallet sign-in, key held by Sustenaut",
 }
@@ -70,10 +81,13 @@ class Reviewer:
         return ASSURANCE[self.login]
 
 
+MODES = ("iap", "wallet", "iap+wallet", "team", "team+wallet")
+
+
 def login_mode() -> str:
     mode = os.environ.get("REVIEW_LOGIN", "iap")
-    if mode not in ("iap", "wallet", "iap+wallet"):
-        raise RuntimeError(f"REVIEW_LOGIN is iap, wallet or iap+wallet, not {mode!r}")
+    if mode not in MODES:
+        raise RuntimeError(f"REVIEW_LOGIN is one of {', '.join(MODES)}, not {mode!r}")
     return mode
 
 
@@ -109,6 +123,49 @@ def _iap_reviewer(request: Request) -> Reviewer:
     if email not in team():
         raise HTTPException(403, f"{email} isn't on the team list (infra/variables.tf, var.team)")
     return Reviewer(email, "iap")
+
+
+# --- The team sign-in, through oauth2-proxy (auth.sustenaut.eu's team realm) ---
+
+TEAM_REALM = "https://auth.sustenaut.eu/realms/team"
+TEAM_SETTINGS = ("ACCESS_CLIENT_ID", "ACCESS_CLIENT_SECRET")
+
+
+def check_setup() -> None:
+    """Refuses to start a team login without the sign-in client the access check asks as."""
+    if login_mode() in ("team", "team+wallet"):
+        missing = [n for n in TEAM_SETTINGS if not os.environ.get(n)]
+        if missing:
+            raise RuntimeError(f"REVIEW_LOGIN={login_mode()} needs {', '.join(missing)}")
+
+
+@lru_cache(maxsize=1)
+def _access():
+    from review.access_check import AccessCheck
+
+    return AccessCheck(os.environ.get("ACCESS_REALM", TEAM_REALM), os.environ["ACCESS_CLIENT_ID"],
+                       os.environ["ACCESS_CLIENT_SECRET"], role=os.environ.get("ACCESS_ROLE", "review"))
+
+
+def _team_reviewer(request: Request) -> Reviewer:
+    from review.access_check import NO_ROLE, SIGN_IN
+
+    check_setup()
+    email = request.headers.get("x-forwarded-email", "").strip().lower()
+    token = request.headers.get("x-forwarded-access-token", "").strip() or None
+    reason = SIGN_IN
+    if email:
+        decision = _access().check(email, token, write=request.method not in ("GET", "HEAD"))
+        if decision.allowed:
+            return Reviewer(email, "team")
+        reason = decision.reason
+    if reason == SIGN_IN:
+        target = request.url.path + (f"?{request.url.query}" if request.url.query else "")
+        raise HTTPException(302, "Sign in", headers={
+            "Location": "/oauth2/sign_in?" + urllib.parse.urlencode({"rd": target})})
+    if reason == NO_ROLE:
+        raise HTTPException(403, "Your account doesn't have access to reviews. Ask a controller on the team access page.")
+    raise HTTPException(503, "auth.sustenaut.eu can't be reached, so your access can't be checked. Try again shortly.")
 
 
 # --- The wallet sign-in (OpenID Connect, auth.sustenaut.eu) -------------------
@@ -188,13 +245,16 @@ def _to_login(request: Request) -> HTTPException:
 def reviewer(request: Request) -> Reviewer:
     """The signed-in reviewer; 401 or 403 (or, for the wallet login, a redirect) otherwise."""
     dev = os.environ.get("REVIEW_DEV_USER")
-    if dev and not os.environ.get("K_SERVICE"):
+    if dev and not os.environ.get("K_SERVICE") and not os.environ.get("KUBERNETES_SERVICE_HOST"):
         return Reviewer(dev.lower(), "dev")
     mode = login_mode()
     if mode == "iap":
         return _iap_reviewer(request)
-    if mode == "iap+wallet":
-        team_member = _iap_reviewer(request)  # IAP still decides who gets in at all
+    if mode == "team":
+        return _team_reviewer(request)
+    if mode in ("iap+wallet", "team+wallet"):
+        # IAP, or the team sign-in, still decides who gets in at all.
+        team_member = _iap_reviewer(request) if mode == "iap+wallet" else _team_reviewer(request)
         return _wallet_reviewer(request) or team_member
     found = _wallet_reviewer(request)
     if not found:
@@ -204,7 +264,7 @@ def reviewer(request: Request) -> Reviewer:
 
 def wallet_offered() -> bool:
     """Whether pages offer the wallet sign-in (and sign-out)."""
-    return login_mode() != "iap"
+    return login_mode() not in ("iap", "team")
 
 
 def _safe_next(value: str | None) -> str:

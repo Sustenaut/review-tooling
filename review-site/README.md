@@ -44,6 +44,17 @@ come from the service's own pages (its `Origin` is checked).
   in at all; a team member may then sign in with a wallet, and reviews they sign
   from then on are the wallet account's. When wallets are issued, the setting
   becomes `wallet` and IAP comes off.
+- `team`: behind oauth2-proxy on the Sustenaut k3s server, signed in with the
+  team realm at auth.sustenaut.eu. The proxy passes the verified email in
+  `X-Forwarded-Email` and the access token in `X-Forwarded-Access-Token`, and
+  only the proxy may reach the service. On each request it asks whether the
+  person still has the role `review` (`review/access_check.py`, a copy of
+  Sustenaut/auth's). It needs `ACCESS_CLIENT_ID` and `ACCESS_CLIENT_SECRET`
+  (sustenaut.eu's team client) and refuses to start without them; `ACCESS_ROLE`
+  and `ACCESS_REALM` default to `review` and the team realm. The account is the
+  email, as with IAP, so reviewers keep their keys.
+- `team+wallet`: `team` deciding who gets in, with the wallet sign-in inside it,
+  as `iap+wallet` does for IAP.
 
 - **Key:** the service holds one key per reviewer, made the first time they
   sign (`review/signer.py`, through the `pub` CLI). The key's secret is in its
