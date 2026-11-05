@@ -336,3 +336,75 @@ def test_sign_out_ends_the_session_here_and_at_keycloak(idp):
     assert r.headers["location"].startswith(f"{ISSUER}/protocol/openid-connect/logout")
     assert params["id_token_hint"] and params["post_logout_redirect_uri"] == "http://testserver/"
     assert client.get("/", follow_redirects=False).status_code == 303  # signed out here too
+
+
+class FakeCheck:
+    """The access check, answering what a test says, and remembering what it was asked."""
+
+    def __init__(self, allowed=True, reason="ok"):
+        self.allowed, self.reason, self.asked = allowed, reason, []
+
+    def check(self, person, token, write=False):
+        from review.access_check import Decision
+
+        self.asked.append((person, token, write))
+        return Decision(self.allowed, self.reason)
+
+
+@pytest.fixture
+def team(local, monkeypatch):
+    monkeypatch.delenv("REVIEW_DEV_USER", raising=False)
+    monkeypatch.setenv("KUBERNETES_SERVICE_HOST", "10.43.0.1")
+    monkeypatch.setenv("REVIEW_LOGIN", "team")
+    monkeypatch.setenv("ACCESS_CLIENT_ID", "sustenaut.eu")
+    monkeypatch.setenv("ACCESS_CLIENT_SECRET", "s3cret")
+    check = FakeCheck()
+    monkeypatch.setattr(auth, "_access", lambda: check)
+    return check
+
+
+PROXIED = {"x-forwarded-email": "Reviewer@Example.org", "x-forwarded-access-token": "at"}
+
+
+def test_behind_the_team_sign_in_the_proxys_email_is_the_reviewer_and_keeps_its_key(team, local):
+    client = TestClient(main.app)
+    assert client.get("/", headers=PROXIED).status_code == 200
+    done = client.post(f"/s/{LED['id']}", data={"action": "agree"}, headers={**ORIGIN, **PROXIED}, follow_redirects=False)
+    assert done.status_code == 303
+    [review] = reviews.reviews(local[0])
+    assert review["assurance"] == "team login, key held by Sustenaut"
+    assert local[1].batches  # signed, as reviewer@example.org: the account IAP gave, so the same key
+    assert team.asked[0] == ("reviewer@example.org", "at", False) and team.asked[-1][2] is True  # a post is a change
+
+
+def test_behind_the_team_sign_in_no_email_goes_to_sign_in(team):
+    r = TestClient(main.app).get("/concept/631?x=1", follow_redirects=False)
+    assert r.status_code == 302 and r.headers["location"] == "/oauth2/sign_in?rd=%2Fconcept%2F631%3Fx%3D1"
+    assert team.asked == []
+
+
+@pytest.mark.parametrize("reason, status", [("no_role", 403), ("sign_in", 302), ("unavailable", 503)])
+def test_behind_the_team_sign_in_the_access_check_decides(team, reason, status):
+    team.allowed, team.reason = False, reason
+    assert TestClient(main.app).get("/", headers=PROXIED, follow_redirects=False).status_code == status
+
+
+def test_the_team_login_refuses_to_start_without_its_client(monkeypatch):
+    monkeypatch.setenv("REVIEW_LOGIN", "team")
+    monkeypatch.delenv("ACCESS_CLIENT_SECRET", raising=False)
+    monkeypatch.setenv("ACCESS_CLIENT_ID", "sustenaut.eu")
+    with pytest.raises(RuntimeError, match="ACCESS_CLIENT_SECRET"):
+        auth.check_setup()
+
+
+def test_the_dev_login_is_refused_on_kubernetes(team, monkeypatch):
+    monkeypatch.setenv("REVIEW_DEV_USER", ME.account)
+    assert TestClient(main.app).get("/", follow_redirects=False).status_code == 302  # to sign in, not the dev user
+
+
+def test_team_and_wallet_offers_the_wallet_inside_the_team_sign_in(team, monkeypatch):
+    monkeypatch.setenv("REVIEW_LOGIN", "team+wallet")
+    assert auth.wallet_offered()
+    assert TestClient(main.app).get("/", headers=PROXIED).status_code == 200
+    monkeypatch.setenv("REVIEW_LOGIN", "team")
+    assert not auth.wallet_offered()

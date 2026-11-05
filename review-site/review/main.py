@@ -19,6 +19,8 @@ templates = Environment(loader=FileSystemLoader(HERE / "templates"), autoescape=
 templates.globals.update(label=bundles.label, href=bundles.href, actions=reviews.ACTIONS,
                          wallet_offered=auth.wallet_offered, quote=quote)
 
+auth.check_setup()
+
 app = FastAPI(title="Sustenaut reviews", docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 app.include_router(auth.router)  # /login, /auth/callback, /logout: the wallet sign-in
