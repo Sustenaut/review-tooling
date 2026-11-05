@@ -1,4 +1,0 @@
-{
-  "category": "added",
-  "change": "REVIEW_LOGIN=team and team+wallet: the service behind oauth2-proxy and the team realm, asking the access check (review/access_check.py, a copy of Sustenaut/auth's) on each request for the role review; the account is still the email, so reviewers keep their keys"
-}
