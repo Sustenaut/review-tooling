@@ -1,0 +1,4 @@
+{
+  "category": "internal",
+  "change": "SonarCloud no longer counts the review check page's own http://127.0.0.1 address as a vulnerability: it is served locally over plain HTTP on purpose"
+}

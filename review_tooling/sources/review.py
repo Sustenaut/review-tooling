@@ -184,7 +184,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         # A finding here is signed later with the reader's key, so only this page may send one.
-        if (not self.local(self.headers.get("Host")) or not self.local(self.headers.get("Origin"), "http://")
+        # The page is served on 127.0.0.1 over plain HTTP, so its own Origin is http://.
+        if (not self.local(self.headers.get("Host")) or not self.local(self.headers.get("Origin"), "http://")  # NOSONAR
                 or self.headers.get("Content-Type") != "application/json"):
             self.send(403, b"only this page may record a finding", "text/plain")
             return
@@ -210,7 +211,7 @@ class Handler(BaseHTTPRequestHandler):
 def serve(port: int = 8765, papers: Path | None = None) -> None:
     Handler.papers = sources.papers_dir() if papers is None else papers
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"check page at http://127.0.0.1:{port}/ (Ctrl-C to stop); findings go to {sources.REGISTRY}")
+    print(f"check page at http://127.0.0.1:{port}/ (Ctrl-C to stop); findings go to {sources.REGISTRY}")  # NOSONAR: a local address
     try:
         server.serve_forever()
     except KeyboardInterrupt:
