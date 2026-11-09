@@ -6,3 +6,6 @@ build/
 .pub/
 /corpus/.publet/
 dist/
+
+# Local secrets, such as the Bitwarden token ./with-secrets reads: never committed.
+.env
