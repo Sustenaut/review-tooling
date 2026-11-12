@@ -13,3 +13,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["review_tooling*"]
+
+[tool.coverage.run]
+patch = ["subprocess"]
+parallel = true
