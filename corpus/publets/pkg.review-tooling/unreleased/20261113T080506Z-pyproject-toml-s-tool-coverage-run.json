@@ -1,0 +1,4 @@
+{
+  "category": "internal",
+  "change": "pyproject.toml's [tool.coverage.run] combines the coverage of pytest-xdist's workers and of subprocesses, as pubkit 0.37.0's managed pubkit-python.mk asks; nothing the package ships changes"
+}
