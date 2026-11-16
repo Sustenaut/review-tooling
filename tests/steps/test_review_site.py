@@ -11,8 +11,11 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from pytest_bdd import scenarios, then
 
-ROOT = Path(__file__).resolve().parent.parent
+scenarios("review-site.feature")
+
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "review-site"))
 
 from review import auth, drafts, keys, main, reviews, signer, store  # noqa: E402
@@ -70,7 +73,8 @@ def form(**fields) -> dict:
     return {k.replace("_", "-"): [v] for k, v in fields.items()}
 
 
-def test_agree_signs_the_concept_and_one_membership_per_member_in():
+@then("agree signs the concept and one membership per member in")
+def agree_signs_the_concept_and_one_membership_per_member_in():
     ds, framed, changes = reviews.plan(LED, "agree", {})
     composed = [d for d in ds if isinstance(d, drafts.Compose)]
     assert len(composed) == 1 and composed[0].defines["sort"] == "concept"
@@ -80,7 +84,8 @@ def test_agree_signs_the_concept_and_one_membership_per_member_in():
     assert changes == {}
 
 
-def test_edit_records_what_changed_from_the_suggestion():
+@then("edit records what changed from the suggestion")
+def edit_records_what_changed_from_the_suggestion():
     f = form(name="LED shelf electricity", pdc="628.9~1", includes="Indoor LED shelves only",
              excludes="", member_0="a", member_1="a", member_2="out", member_3="out")
     _, framed, changes = reviews.plan(LED, "edit", f)
@@ -88,7 +93,8 @@ def test_edit_records_what_changed_from_the_suggestion():
     assert set(changes) == {"name", "includes", "excludes", "members"}
 
 
-def test_split_makes_two_concepts_and_needs_the_second_ones_members():
+@then("split makes two concepts and needs the second ones members")
+def split_makes_two_concepts_and_needs_the_second_ones_members():
     f = form(name="LED shelf electricity", pdc="628.9~1", includes="LED shelves", member_0="a",
              member_1="a", member_2="out", member_3="b", name_2="Rooftop daylight growing electricity",
              pdc_2="628.9~2", includes_2="Rooftop systems under daylight")
@@ -100,7 +106,8 @@ def test_split_makes_two_concepts_and_needs_the_second_ones_members():
         reviews.plan(LED, "split", f)
 
 
-def test_not_the_same_disputes_the_suggestion_and_needs_a_reason():
+@then("not the same disputes the suggestion and needs a reason")
+def not_the_same_disputes_the_suggestion_and_needs_a_reason():
     ds, _, _ = reviews.plan(LED, "reject", form(reason="The rooftop and the review measure other things."))
     assert isinstance(ds[0], drafts.Compose) and ds[0].cls == "normative"
     assert ds[1] == drafts.Relate("disputes", "reason", LED["id"])
@@ -108,16 +115,19 @@ def test_not_the_same_disputes_the_suggestion_and_needs_a_reason():
         reviews.plan(LED, "reject", form(reason="  "))
 
 
-def test_not_sure_signs_nothing():
+@then("not sure signs nothing")
+def not_sure_signs_nothing():
     assert reviews.plan(LED, "defer", form(note="read Sandison first"))[0] == []
 
 
-def test_a_quoted_figure_is_agreed_as_derived_from_its_primary():
+@then("a quoted figure is agreed as derived from its primary")
+def a_quoted_figure_is_agreed_as_derived_from_its_primary():
     ds, _, _ = reviews.plan(QUOTED, "agree", {})
     assert ds == [drafts.Relate("derived-from", QUOTED["target"], QUOTED["candidate"]["primary"])]
 
 
-def test_the_pages_render_and_a_review_is_stored_with_its_assurance(local):
+@then("the pages render and a review is stored with its assurance")
+def the_pages_render_and_a_review_is_stored_with_its_assurance(local):
     s, fake = local
     client = TestClient(main.app)
     queue = client.get("/")
@@ -136,33 +146,38 @@ def test_the_pages_render_and_a_review_is_stored_with_its_assurance(local):
     assert concept.status_code == 200 and LED["candidate"]["concept"]["name"] in concept.text
 
 
-def test_an_invalid_form_says_why_and_keeps_what_was_typed(local):
+@then("an invalid form says why and keeps what was typed")
+def an_invalid_form_says_why_and_keeps_what_was_typed(local):
     client = TestClient(main.app)
     r = client.post(f"/s/{LED['id']}", data={"action": "reject", "reason": ""}, headers=ORIGIN)
     assert r.status_code == 422 and "Say why" in r.text
 
 
-def test_a_post_from_another_site_is_refused(local):
+@then("a post from another site is refused")
+def a_post_from_another_site_is_refused(local):
     client = TestClient(main.app)
     r = client.post(f"/s/{LED['id']}", data={"action": "agree"}, headers={"origin": "https://evil.example"})
     assert r.status_code == 403
     assert reviews.reviews(local[0]) == []
 
 
-def test_without_a_login_nothing_is_shown(tmp_path, monkeypatch):
+@then("without a login nothing is shown")
+def without_a_login_nothing_is_shown(tmp_path, monkeypatch):
     monkeypatch.delenv("REVIEW_DEV_USER", raising=False)
     monkeypatch.delenv("IAP_AUDIENCE", raising=False)
     assert TestClient(main.app).get("/").status_code == 401
 
 
-def test_the_dev_login_is_refused_on_cloud_run(monkeypatch):
+@then("the dev login is refused on cloud run")
+def the_dev_login_is_refused_on_cloud_run(monkeypatch):
     monkeypatch.setenv("REVIEW_DEV_USER", ME.account)
     monkeypatch.setenv("K_SERVICE", "review-site")
     monkeypatch.delenv("IAP_AUDIENCE", raising=False)
     assert TestClient(main.app).get("/").status_code == 401
 
 
-def test_the_store_never_replaces_anything(tmp_path):
+@then("the store never replaces anything")
+def the_store_never_replaces_anything(tmp_path):
     s = store.LocalStore(tmp_path)
     s.create("objects/a.cbor", b"1", "application/cbor")
     with pytest.raises(store.Exists):
@@ -170,7 +185,8 @@ def test_the_store_never_replaces_anything(tmp_path):
     assert s.read("objects/a.cbor") == b"1"
 
 
-def test_the_overturn_rate_counts_rejections_per_suggester(local):
+@then("the overturn rate counts rejections per suggester")
+def the_overturn_rate_counts_rejections_per_suggester(local):
     s, fake = local
     reviews.record(s, fake, ME, LED, "reject", form(reason="different systems"))
     reviews.record(s, fake, ME, QUOTED, "agree", {})
@@ -178,8 +194,14 @@ def test_the_overturn_rate_counts_rejections_per_suggester(local):
     assert rate == (1, 2)
 
 
-@pytest.mark.skipif(_pub() is None, reason="needs PUB, a pub that knows the concept sort")
-def test_a_held_key_signs_real_objects_and_is_reused(tmp_path):
+@then("a held key signs real objects and is reused")
+def a_held_key_signs_real_objects_and_is_reused(tmp_path):
+    if _pub() is None:
+        pytest.skip("needs PUB, a pub that knows the concept sort")
+    _case_a_held_key_signs_real_objects_and_is_reused(tmp_path=tmp_path)
+
+
+def _case_a_held_key_signs_real_objects_and_is_reused(tmp_path):
     root = tmp_path / "keys"
     links, secrets = keys.LocalLinks(root / "links.json"), keys.LocalSecrets(root)
     held = signer.HeldKeySigner(_pub(), links, secrets)
@@ -268,7 +290,8 @@ def idp(monkeypatch, local):
     return state
 
 
-def test_login_sends_the_browser_to_keycloak_with_pkce(idp):
+@then("login sends the browser to keycloak with pkce")
+def login_sends_the_browser_to_keycloak_with_pkce(idp):
     from urllib.parse import parse_qs as qs, urlparse
     client = TestClient(main.app)
     r = client.get("/login", follow_redirects=False)
@@ -281,7 +304,8 @@ def test_login_sends_the_browser_to_keycloak_with_pkce(idp):
     assert params["state"] and params["nonce"] and len(params["code_challenge"]) == 43
 
 
-def test_a_wallet_sign_in_starts_a_session_and_the_pages_show_it(idp):
+@then("a wallet sign in starts a session and the pages show it")
+def a_wallet_sign_in_starts_a_session_and_the_pages_show_it(idp):
     client = TestClient(main.app)
     assert client.get("/", follow_redirects=False).headers["location"].startswith("/login?next=")
     r, params = idp["sign_in"](client)
@@ -293,7 +317,8 @@ def test_a_wallet_sign_in_starts_a_session_and_the_pages_show_it(idp):
     assert "Sign out" in page_.text
 
 
-def test_a_wallet_reviewers_key_is_linked_to_the_wallet_account(idp, local):
+@then("a wallet reviewers key is linked to the wallet account")
+def a_wallet_reviewers_key_is_linked_to_the_wallet_account(idp, local):
     s, fake = local
     client = TestClient(main.app)
     idp["sign_in"](client)
@@ -307,27 +332,31 @@ def test_a_wallet_reviewers_key_is_linked_to_the_wallet_account(idp, local):
     assert "Mari" not in json.dumps(review)  # the name stays out of the record
 
 
-def test_a_tampered_session_is_not_a_sign_in(idp):
+@then("a tampered session is not a sign in")
+def a_tampered_session_is_not_a_sign_in(idp):
     client = TestClient(main.app)
     idp["sign_in"](client)
     client.cookies.set(auth.SESSION_COOKIE, client.cookies.get(auth.SESSION_COOKIE)[:-2] + "xx")
     assert client.get("/", follow_redirects=False).status_code == 303
 
 
-def test_an_id_token_for_another_sign_in_is_refused(idp):
+@then("an id token for another sign in is refused")
+def an_id_token_for_another_sign_in_is_refused(idp):
     idp["claims"]["nonce"] = "someone-elses"
     r, _ = idp["sign_in"](TestClient(main.app))
     assert r.status_code == 401 and auth.SESSION_COOKIE not in r.cookies
 
 
-def test_with_iap_and_wallet_iap_still_decides_who_gets_in(idp, monkeypatch):
+@then("with iap and wallet iap still decides who gets in")
+def with_iap_and_wallet_iap_still_decides_who_gets_in(idp, monkeypatch):
     monkeypatch.setenv("REVIEW_LOGIN", "iap+wallet")
     client = TestClient(main.app)
     idp["sign_in"](client)
     assert client.get("/", follow_redirects=False).status_code == 401  # no IAP header: no entry
 
 
-def test_sign_out_ends_the_session_here_and_at_keycloak(idp):
+@then("sign out ends the session here and at keycloak")
+def sign_out_ends_the_session_here_and_at_keycloak(idp):
     from urllib.parse import parse_qs as qs, urlparse
     client = TestClient(main.app)
     idp["sign_in"](client)
@@ -366,7 +395,8 @@ def team(local, monkeypatch):
 PROXIED = {"x-forwarded-email": "Reviewer@Example.org", "x-forwarded-access-token": "at"}
 
 
-def test_behind_the_team_sign_in_the_proxys_email_is_the_reviewer_and_keeps_its_key(team, local):
+@then("behind the team sign in the proxys email is the reviewer and keeps its key")
+def behind_the_team_sign_in_the_proxys_email_is_the_reviewer_and_keeps_its_key(team, local):
     client = TestClient(main.app)
     assert client.get("/", headers=PROXIED).status_code == 200
     done = client.post(f"/s/{LED['id']}", data={"action": "agree"}, headers={**ORIGIN, **PROXIED}, follow_redirects=False)
@@ -377,19 +407,28 @@ def test_behind_the_team_sign_in_the_proxys_email_is_the_reviewer_and_keeps_its_
     assert team.asked[0] == ("reviewer@example.org", "at", False) and team.asked[-1][2] is True  # a post is a change
 
 
-def test_behind_the_team_sign_in_no_email_goes_to_sign_in(team):
+@then("behind the team sign in no email goes to sign in")
+def behind_the_team_sign_in_no_email_goes_to_sign_in(team):
     r = TestClient(main.app).get("/concept/631?x=1", follow_redirects=False)
     assert r.status_code == 302 and r.headers["location"] == "/oauth2/sign_in?rd=%2Fconcept%2F631%3Fx%3D1"
     assert team.asked == []
 
 
-@pytest.mark.parametrize("reason, status", [("no_role", 403), ("sign_in", 302), ("unavailable", 503)])
-def test_behind_the_team_sign_in_the_access_check_decides(team, reason, status):
+@then("behind the team sign in the access check decides")
+def behind_the_team_sign_in_the_access_check_decides(team):
+    """Every case of the parametrized test this was, in turn."""
+    for case0 in [("no_role", 403), ("sign_in", 302), ("unavailable", 503)]:
+        case0 = case0.values if type(case0).__name__ == "ParameterSet" else case0
+        _case_behind_the_team_sign_in_the_access_check_decides(reason=case0[0], status=case0[1], team=team)
+
+
+def _case_behind_the_team_sign_in_the_access_check_decides(team, reason, status):
     team.allowed, team.reason = False, reason
     assert TestClient(main.app).get("/", headers=PROXIED, follow_redirects=False).status_code == status
 
 
-def test_the_team_login_refuses_to_start_without_its_client(monkeypatch):
+@then("the team login refuses to start without its client")
+def the_team_login_refuses_to_start_without_its_client(monkeypatch):
     monkeypatch.setenv("REVIEW_LOGIN", "team")
     monkeypatch.delenv("ACCESS_CLIENT_SECRET", raising=False)
     monkeypatch.setenv("ACCESS_CLIENT_ID", "sustenaut.eu")
@@ -397,12 +436,14 @@ def test_the_team_login_refuses_to_start_without_its_client(monkeypatch):
         auth.check_setup()
 
 
-def test_the_dev_login_is_refused_on_kubernetes(team, monkeypatch):
+@then("the dev login is refused on kubernetes")
+def the_dev_login_is_refused_on_kubernetes(team, monkeypatch):
     monkeypatch.setenv("REVIEW_DEV_USER", ME.account)
     assert TestClient(main.app).get("/", follow_redirects=False).status_code == 302  # to sign in, not the dev user
 
 
-def test_team_and_wallet_offers_the_wallet_inside_the_team_sign_in(team, monkeypatch):
+@then("team and wallet offers the wallet inside the team sign in")
+def team_and_wallet_offers_the_wallet_inside_the_team_sign_in(team, monkeypatch):
     monkeypatch.setenv("REVIEW_LOGIN", "team+wallet")
     assert auth.wallet_offered()
     assert TestClient(main.app).get("/", headers=PROXIED).status_code == 200
