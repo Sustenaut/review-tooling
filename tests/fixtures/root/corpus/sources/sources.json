@@ -30,7 +30,7 @@
     "name": "energy per day",
     "dimension": {
      "m": 2,
-     "kg": 1,
+     "g": 1,
      "s": -3
     },
     "units": [
@@ -49,7 +49,7 @@
     "name": "power",
     "dimension": {
      "m": 2,
-     "kg": 1,
+     "g": 1,
      "s": -3
     },
     "units": [

@@ -116,7 +116,15 @@
     "sort": "concept",
     "pdc": "69~1",
     "name": "floor area",
-    "kind": "k.area"
+    "kind": "k.area",
+    "boundary": {
+     "includes": [
+      "Floor inside the walls"
+     ],
+     "excludes": [
+      "Wall thickness"
+     ]
+    }
    }
   },
   {
@@ -130,7 +138,15 @@
     "sort": "concept",
     "pdc": "65~1",
     "name": "part cost",
-    "kind": "k.price"
+    "kind": "k.price",
+    "boundary": {
+     "includes": [
+      "One part bought in bulk"
+     ],
+     "excludes": [
+      "Shipping"
+     ]
+    }
    }
   }
  ],
@@ -151,7 +167,10 @@
     "lat": 10.5,
     "lng": 20.5,
     "resolution": 7
-   }
+   },
+   "depends": [
+    "c.place"
+   ]
   },
   {
    "id": "s.harbour.cellar",
@@ -167,7 +186,10 @@
    "id": "s.widget",
    "name": "Widget",
    "class": "c.thing",
-   "content": "Widget: a made-up device."
+   "content": "Widget: a made-up device.",
+   "depends": [
+    "c.thing"
+   ]
   }
  ],
  "facts": [
@@ -208,6 +230,27 @@
     "Widget part"
    ],
    "content": "The Widget part costs 3 euros."
+  },
+  {
+   "id": "f.harbour.floor_area",
+   "about": "s.harbour",
+   "concept": "q.floor_area",
+   "unit": "m2",
+   "value": "60",
+   "method": "p.plan",
+   "sources": [
+    {
+     "ref": "https://example.org/plan",
+     "locator": "page 3"
+    }
+   ],
+   "mentions": [
+    "Harbour site"
+   ],
+   "content": "The Harbour site has a floor area of 60 m2.",
+   "open": [
+    "The Harbour site's floor area is a figure to check; nobody has measured it."
+   ]
   }
  ],
  "lint_allow": []

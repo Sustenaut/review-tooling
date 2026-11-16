@@ -8,7 +8,12 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
+import os
+import shutil
+import subprocess
 import urllib.request
+from pathlib import Path
 
 import pytest
 
@@ -71,6 +76,78 @@ def an_agreeing_figure_and_an_allowed_quote_pass(tmp_path):
 # --- gathering --------------------------------------------------------------
 
 from review_tooling.facts import gather  # noqa: E402
+
+
+def _recorded(reg: dict) -> dict:
+    """A record that agrees with `reg`, as a gather would leave it, without pub:
+    each item's object is made up, its bytes the item's id."""
+    items, cids = {}, {}
+    for item in gather.items(reg):
+        cids[item.id] = gather.cid_of(item.id.encode())
+        items[item.id] = {"cid": cids[item.id], "digest": item.digest(cids)}
+    return {"items": items, "objects": sorted(gather.filename(c) for c in cids.values())}
+
+
+def _edited(fact_id: str, **changes) -> dict:
+    reg = facts.registry()
+    next(f for f in reg["facts"] if f["id"] == fact_id).update(changes)
+    return reg
+
+
+@then("an unchanged registry composes nothing")
+def an_unchanged_registry_composes_nothing():
+    reg = facts.registry()
+    p = gather.plan(gather.items(reg), _recorded(reg))
+    assert (p.compose, p.revise, p.retract) == ([], [], [])
+
+
+@then("an edited value revises that fact alone")
+def an_edited_value_revises_that_fact_alone():
+    reg = _edited("f.widget.part_cost", value="4")
+    p = gather.plan(gather.items(reg), _recorded(facts.registry()))
+    assert (p.compose, p.revise, p.retract) == ([], ["f.widget.part_cost"], [])
+
+
+@then("a revised definition revises what cites it")
+def a_revised_definition_revises_what_cites_it():
+    reg = facts.registry()
+    next(d for d in reg["definitions"] if d["id"] == "q.floor_area")["content"] += " Inside the walls."
+    p = gather.plan(gather.items(reg), _recorded(facts.registry()))
+    assert p.revise == ["q.floor_area", "f.harbour.cellar.floor_area",
+                        "f.harbour.floor_area", "f.harbour.floor_area#open0"]
+
+
+@then("check reports a registry edit nobody gathered")
+def check_reports_a_registry_edit_nobody_gathered(tmp_path):
+    reg = _edited("f.harbour.cellar.floor_area", value="21")
+    assert gather.check(reg, _recorded(facts.registry()), tmp_path / "none") == [
+        "f.harbour.cellar.floor_area: changed in the registry since it was gathered"]
+
+
+@then("check reports a fact removed without retraction")
+def check_reports_a_fact_removed_without_retraction(tmp_path):
+    reg = facts.registry()
+    reg["facts"] = [f for f in reg["facts"] if f["id"] != "f.widget.part_cost"]
+    assert gather.check(reg, _recorded(facts.registry()), tmp_path / "none") == [
+        "f.widget.part_cost: gathered but gone from the registry, and not retracted"]
+
+
+@then("check reports a stray object and tampered bytes")
+def check_reports_a_stray_object_and_tampered_bytes(tmp_path):
+    reg = facts.registry()
+    record = _recorded(reg)
+    objects = tmp_path / "objects"
+    objects.mkdir()
+    for item_id, entry in record["items"].items():
+        (objects / gather.filename(entry["cid"])).write_bytes(item_id.encode())
+    assert gather.check(reg, record, objects) == []
+    stray = objects / gather.filename(gather.cid_of(b"stray"))
+    stray.write_bytes(b"stray")
+    victim = objects / record["objects"][0]
+    victim.write_bytes(b"not what was signed")
+    assert gather.check(reg, record, objects) == [
+        f"{stray.name}: in corpus/objects but not recorded by any gather",
+        f"{victim.name}: its bytes do not hash to its name"]
 
 
 @then("a registry nothing was gathered from composes all of it")
@@ -187,7 +264,109 @@ def upload_sends_each_object_and_refuses_another_address(tmp_path, monkeypatch):
 def check_without_a_local_copy_compares_only_the_registry_and_the_record(tmp_path):
     reg = facts.registry()
     items = gather.items(reg)
+    assert gather.check(reg, _recorded(reg), tmp_path / "no") == []
     assert any("never gathered" in p for p in gather.check(reg, {"items": {}, "objects": []}, tmp_path / "no"))
     recorded = {"items": {"x": {"cid": gather.cid_of(b"x"), "input": "y"}}, "objects": []}
     assert any("is not recorded" in p for p in gather.check(reg, recorded, tmp_path / "no"))
     assert items
+
+
+# --- gathering with pub: what is published is kept, changes become new versions
+
+# These drive a real pub (and pub-store beside it) in a scratch corpus with a
+# key made for the test. CI has no pub, so they run where one is: set PUB, or
+# put pub and pub-store on PATH.
+def _pub() -> str | None:
+    pub = os.environ.get("PUB") or shutil.which("pub")
+    if not pub or not Path(gather.store_binary(pub)).exists():
+        return None
+    return pub
+
+
+def _needs_pub() -> str:
+    pub = _pub()
+    if pub is None:
+        pytest.skip("needs pub and pub-store: set PUB or put them on PATH")
+    return pub
+
+
+# The paths pub reads the made-up facts by: class, singulars, concept.
+PATH_CELLAR_AREA = "place.harbour.cellar.floor_area"
+PATH_HARBOUR_AREA = "place.harbour.floor_area"
+
+
+@pytest.fixture
+def corpus(tmp_path, monkeypatch):
+    """A scratch corpus holding the made-up registry, and a fresh key."""
+    path = tmp_path / "registry.json"
+    path.write_text(json.dumps(facts.registry()))
+    monkeypatch.setenv("FACTS_KEY", str(tmp_path / "secret.key"))
+    monkeypatch.setenv("FACTS_NOW", "2026-11-01T00:00:00Z")
+    for name, value in [("OBJECTS", tmp_path / "objects"), ("GATHERED", tmp_path / "gathered.json"),
+                        ("KEY_ID", tmp_path / "key")]:
+        monkeypatch.setattr(gather, name, value)
+    (tmp_path / "objects").mkdir()
+    return path
+
+
+def _files(corpus: Path) -> set[str]:
+    return {p.name for p in (corpus.parent / "objects").glob("*.cbor")}
+
+
+def _get(corpus: Path, path: str) -> str:
+    return subprocess.run([os.environ["PUB"], "get", path, f"--dir={corpus.parent / 'objects'}"],
+                          capture_output=True, text=True).stdout
+
+
+def _edit(corpus: Path, fact_id: str, **changes) -> None:
+    reg = json.loads(corpus.read_text())
+    next(f for f in reg["facts"] if f["id"] == fact_id).update(changes)
+    corpus.write_text(json.dumps(reg))
+
+
+@then("gathering an unchanged registry again adds nothing")
+def gathering_an_unchanged_registry_again_adds_nothing(corpus, monkeypatch):
+    monkeypatch.setenv("PUB", _needs_pub())
+    gather.gather(corpus)
+    before = _files(corpus)
+
+    def refuse(*_):
+        raise AssertionError("an unchanged item was composed again")
+
+    monkeypatch.setattr(gather, "compose", refuse)
+    p = gather.gather(corpus)
+    assert (p.compose, p.revise) == ([], []) and _files(corpus) == before
+
+
+@then("an edited value is a new version and the old object stays")
+def an_edited_value_is_a_new_version_and_the_old_object_stays(corpus, monkeypatch):
+    monkeypatch.setenv("PUB", _needs_pub())
+    gather.gather(corpus)
+    old_cid = gather.load_gathered(gather.GATHERED)["items"]["f.harbour.cellar.floor_area"]["cid"]
+    before = _files(corpus)
+    _edit(corpus, "f.harbour.cellar.floor_area", value="21")
+
+    p = gather.gather(corpus)
+
+    assert p.revise == ["f.harbour.cellar.floor_area"]
+    assert before < _files(corpus) and gather.filename(old_cid) in _files(corpus)
+    shown = _get(corpus, PATH_CELLAR_AREA)
+    assert "value     value 21" in shown and "value 20" not in shown
+    assert gather.check(json.loads(corpus.read_text()), gather.load_gathered(gather.GATHERED)) == []
+
+
+@then("a removed open note is retracted not deleted")
+def a_removed_open_note_is_retracted_not_deleted(corpus, monkeypatch):
+    monkeypatch.setenv("PUB", _needs_pub())
+    gather.gather(corpus)
+    note = gather.load_gathered(gather.GATHERED)["items"]["f.harbour.floor_area#open0"]["cid"]
+    _edit(corpus, "f.harbour.floor_area", open=[])
+
+    p = gather.gather(corpus)
+
+    assert p.retract == ["f.harbour.floor_area#open0"]
+    assert gather.filename(note) in _files(corpus)
+    assert gather.load_gathered(gather.GATHERED)["items"]["f.harbour.floor_area#open0"]["retracted"]
+    # With the note retracted, nothing leaves the fact open: a value stated
+    # without a measure reads as an estimate (publet#65, spec 5.9.7).
+    assert "status    estimate" in _get(corpus, PATH_HARBOUR_AREA)
