@@ -15,12 +15,16 @@ import pytest
 
 from review_tooling import suggest as sg
 from review_tooling.suggest import draft, run as job, sign
+from pytest_bdd import scenarios, then
 
-FIXTURE = Path(__file__).resolve().parents[1] / "review-site" / "fixtures" / "suggestions" / "led-shelf.json"
+scenarios("suggest.feature")
+
+FIXTURE = Path(__file__).resolve().parents[2] / "review-site" / "fixtures" / "suggestions" / "led-shelf.json"
 PDC = {"631": "Agriculture in general", "631.5": "Agricultural operations", "628.9": "Lighting"}
 
 
-def test_canonical_cbor_is_what_pub_writes():
+@then("canonical cbor is what pub writes")
+def canonical_cbor_is_what_pub_writes():
     # An assessment annotation `pub annotate` (v0.2.2) wrote, and its identifier.
     obj = {"author": "pub:sha2-256:pc447lywkwqgyv7angd5w5oil6izjqyykjpfg74ausidcsbkdnia",
            "body": {"kind": "assessment", "scope": {"conditions": [], "domain": "unconditional"},
@@ -32,7 +36,8 @@ def test_canonical_cbor_is_what_pub_writes():
         sign.cbor(1.5)
 
 
-def test_the_snapshot_holds_every_gathered_extract_by_kind():
+@then("the snapshot holds every gathered extract by kind")
+def the_snapshot_holds_every_gathered_extract_by_kind():
     reg, gathered = sg.registry(), sg.gathered()
     snap = sg.snapshot(reg, gathered)
     extracts = [e for e in reg["extracts"] if e["id"] in gathered["items"]]
@@ -57,7 +62,8 @@ def _concept(parent: str, members: list[tuple[str, bool]]) -> dict:
             "members": [{"id": i, "in": inside, "why": "w"} for i, inside in members]}
 
 
-def test_a_draft_becomes_suggestions_in_the_review_services_shape():
+@then("a draft becomes suggestions in the review services shape")
+def a_draft_becomes_suggestions_in_the_review_services_shape():
     used = {"631.5~1"}
     made, problems = sg.suggestions_for(_group(), {"concepts": [
         _concept("631.5", [("e.0", True), ("e.1", False), ("e.2", True)]),
@@ -80,7 +86,8 @@ def test_a_draft_becomes_suggestions_in_the_review_services_shape():
     assert blob["classifies"] == [first["refs"][0], first["refs"][2]]
 
 
-def test_rejected_suggestions_free_their_extracts():
+@then("rejected suggestions free their extracts")
+def rejected_suggestions_free_their_extracts():
     s = {**json.loads(FIXTURE.read_text())}
     state = sg.State([s], [], set())
     assert state.covered() == {m["cid"] for m in s["candidate"]["members"] if m["in"]}
@@ -122,7 +129,8 @@ class FakeSigner:
         return {}
 
 
-def test_a_run_writes_suggestions_and_is_not_repeated(tmp_path, monkeypatch):
+@then("a run writes suggestions and is not repeated")
+def a_run_writes_suggestions_and_is_not_repeated(tmp_path, monkeypatch):
     monkeypatch.setenv("FACTS_NOW", "2026-10-29T00:00:00Z")
     client, state, out = FakeClient(), tmp_path / "state", tmp_path / "out"
     state.mkdir()
@@ -146,7 +154,8 @@ def test_a_run_writes_suggestions_and_is_not_repeated(tmp_path, monkeypatch):
     assert again["skipped"] and len(client.bodies) == len(groups)
 
 
-def test_a_refused_group_is_skipped_and_the_run_not_recorded(tmp_path):
+@then("a refused group is skipped and the run not recorded")
+def a_refused_group_is_skipped_and_the_run_not_recorded(tmp_path):
     class Refusing(FakeClient):
         def create(self, **body):
             return types.SimpleNamespace(stop_reason="refusal", stop_details=types.SimpleNamespace(category="x"))
@@ -165,8 +174,14 @@ def _pub() -> str | None:
     return pub
 
 
-@pytest.mark.skipif(_pub() is None, reason="needs pub and pub-store from publet-cli v0.2.2 or later")
-def test_triage_is_signed_by_the_suggester_key(tmp_path, monkeypatch):
+@then("triage is signed by the suggester key")
+def triage_is_signed_by_the_suggester_key(tmp_path, monkeypatch):
+    if _pub() is None:
+        pytest.skip("needs pub and pub-store from publet-cli v0.2.2 or later")
+    _case_triage_is_signed_by_the_suggester_key(tmp_path=tmp_path, monkeypatch=monkeypatch)
+
+
+def _case_triage_is_signed_by_the_suggester_key(tmp_path, monkeypatch):
     monkeypatch.setenv("PUB", _pub())
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     monkeypatch.delenv("SUGGESTER_KEY", raising=False)
@@ -190,7 +205,8 @@ def test_triage_is_signed_by_the_suggester_key(tmp_path, monkeypatch):
     assert sg.cid(objects[made]) == made
 
 
-def test_a_claude_code_session_can_draft_in_place_of_the_api(tmp_path, monkeypatch):
+@then("a claude code session can draft in place of the api")
+def a_claude_code_session_can_draft_in_place_of_the_api(tmp_path, monkeypatch):
     monkeypatch.setenv("FACTS_NOW", "2026-10-29T00:00:00Z")
     state, reqs = tmp_path / "state", tmp_path / "requests"
     state.mkdir()

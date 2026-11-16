@@ -18,6 +18,9 @@ import pytest
 
 from review_tooling import sources
 from review_tooling.sources import gather, review, upload
+from pytest_bdd import scenarios, then
+
+scenarios("sources.feature")
 
 
 @pytest.fixture
@@ -39,16 +42,19 @@ def extract(reg: dict, ident: str) -> dict:
     return next(e for e in reg["extracts"] if e["id"] == ident)
 
 
-def test_the_registry_is_well_formed(reg, tmp_path):
+@then("the registry is well formed")
+def the_registry_is_well_formed(reg, tmp_path):
     assert [str(p) for p in sources.lint(reg, papers=tmp_path)] == []
 
 
-def test_a_quote_over_25_words_is_refused(reg, tmp_path):
+@then("a quote over 25 words is refused")
+def a_quote_over_25_words_is_refused(reg, tmp_path):
     extract(reg, "e.maple_2024.pump_energy")["quote"] = " ".join(["word"] * 24 + ["12.5"] * 2)
     assert any("quote is 1 to 25 words" in p.message for p in sources.lint(reg, papers=tmp_path))
 
 
-def test_a_locator_starts_with_a_page_of_the_file(reg, tmp_path):
+@then("a locator starts with a page of the file")
+def a_locator_starts_with_a_page_of_the_file(reg, tmp_path):
     extract(reg, "e.maple_2024.pump_energy")["locator"] = "sec 2.2"
     extract(reg, "e.maple_2024.pump_power")["locator"] = "p 30; sec 2.2"
     messages = [str(p) for p in sources.lint(reg, papers=tmp_path)]
@@ -56,17 +62,20 @@ def test_a_locator_starts_with_a_page_of_the_file(reg, tmp_path):
     assert any("pump_power: page 30 is not in the file's 29 pages" in m for m in messages)
 
 
-def test_the_value_must_be_in_its_quote(reg, tmp_path):
+@then("the value must be in its quote")
+def the_value_must_be_in_its_quote(reg, tmp_path):
     extract(reg, "e.maple_2024.pump_energy")["value"] = {"value": "24.6"}
     assert any("the value is not in the quote" in p.message for p in sources.lint(reg, papers=tmp_path))
 
 
-def test_a_unit_outside_its_kind_is_refused(reg, tmp_path):
+@then("a unit outside its kind is refused")
+def a_unit_outside_its_kind_is_refused(reg, tmp_path):
     extract(reg, "e.maple_2024.pump_energy")["unit"] = "W"
     assert any("unit W is not one of" in p.message for p in sources.lint(reg, papers=tmp_path))
 
 
-def test_a_quote_is_found_across_line_breaks_superscripts_and_an_ellipsis():
+@then("a quote is found across line breaks superscripts and an ellipsis")
+def a_quote_is_found_across_line_breaks_superscripts_and_an_ellipsis():
     page = "covered an area of 800 m² , including 700 m2 for the hydro-\nponic system and 100 m2 for walkways"
     assert sources.quote_on_page("an area of 800 m², including 700 m² for the hydroponic system", [page])
     assert sources.quote_on_page("covered an area … 100 m² for walkways", [page])
@@ -74,7 +83,8 @@ def test_a_quote_is_found_across_line_breaks_superscripts_and_an_ellipsis():
     assert not sources.quote_on_page("100 m2 for walkways … covered an area", [page])
 
 
-def test_status_follows_the_spec(reg):
+@then("status follows the spec")
+def status_follows_the_spec(reg):
     lead, plain = extract(reg, "e.maple_2024.yield_max"), extract(reg, "e.maple_2024.yield_mean")
     assert (sources.status(lead), sources.status(plain)) == ("lead", "to-verify")
     affirm(reg, plain["id"], lead["id"])
@@ -85,12 +95,14 @@ def test_status_follows_the_spec(reg):
     assert sources.status(plain) == "rejected"
 
 
-def test_nothing_is_gathered_until_a_person_checks_it(reg):
+@then("nothing is gathered until a person checks it")
+def nothing_is_gathered_until_a_person_checks_it(reg):
     assert gather.needed(reg) == set()
     assert gather.items(reg) == []
 
 
-def test_a_checked_extract_brings_what_it_cites(reg):
+@then("a checked extract brings what it cites")
+def a_checked_extract_brings_what_it_cites(reg):
     affirm(reg, "e.maple_2024.climate")
     ids = {i.id for i in gather.items(reg)}
     assert {"e.maple_2024.climate", "e.maple_2024.climate#verdict",
@@ -103,7 +115,8 @@ def test_a_checked_extract_brings_what_it_cites(reg):
     assert signers["src.maple_2024"] == "reader.david"
 
 
-def test_a_check_claim_waits_for_every_extract_it_compares(reg):
+@then("a check claim waits for every extract it compares")
+def a_check_claim_waits_for_every_extract_it_compares(reg):
     check = next(c for c in reg["checks"] if c["id"] == "ch.maple_2024.pump")
     affirm(reg, *check["depends"][:-1])
     assert check["id"] not in gather.needed(reg)
@@ -111,31 +124,36 @@ def test_a_check_claim_waits_for_every_extract_it_compares(reg):
     assert check["id"] in gather.needed(reg)
 
 
-def test_a_rejected_extract_is_not_gathered(reg):
+@then("a rejected extract is not gathered")
+def a_rejected_extract_is_not_gathered(reg):
     affirm(reg, "e.maple_2024.pump_energy")
     extract(reg, "e.maple_2024.pump_energy")["checked"]["finding"] = "reject"
     assert gather.needed(reg) == set()
 
 
-def test_check_reports_a_checked_extract_nobody_gathered(reg):
+@then("check reports a checked extract nobody gathered")
+def check_reports_a_checked_extract_nobody_gathered(reg):
     affirm(reg, "e.maple_2024.pump_energy")
     problems = gather.check(reg, {"keys": {}, "items": {}, "objects": {}, "files": {}})
     assert "e.maple_2024.pump_energy: checked but never gathered" in problems
 
 
-def test_check_reports_an_object_not_uploaded(reg):
+@then("check reports an object not uploaded")
+def check_reports_an_object_not_uploaded(reg):
     gathered = {"keys": {}, "items": {}, "objects": {"pub_sha2-256_x.cbor": None}, "files": {}}
     assert "pub_sha2-256_x.cbor: gathered but not uploaded" in gather.check(reg, gathered)
 
 
-def test_only_an_open_licence_pdf_has_an_address(reg):
+@then("only an open licence pdf has an address")
+def only_an_open_licence_pdf_has_an_address(reg):
     source = reg["sources"][0]
     assert sources.file_url(source) == f"{sources.STORAGE}/f/{source['file_sha256']}/{source['file_name']}"
     source["licence"] = "All rights reserved"
     assert sources.file_url(source) is None
 
 
-def test_the_check_page_records_a_finding_and_refuses_a_bad_edit(reg):
+@then("the check page records a finding and refuses a bad edit")
+def the_check_page_records_a_finding_and_refuses_a_bad_edit(reg):
     ident = "e.maple_2024.pump_energy"
     assert review.apply(reg, ident, "affirm", today="2026-10-29") == []
     assert extract(reg, ident)["checked"] == {"by": "reader.david", "at": "2026-10-29", "finding": "affirm"}
@@ -145,21 +163,24 @@ def test_the_check_page_records_a_finding_and_refuses_a_bad_edit(reg):
     assert review.apply(reg, ident, None) == [] and extract(reg, ident)["checked"] is None
 
 
-def test_an_edited_unit_moves_the_extract_to_the_kind_that_lists_it(reg):
+@then("an edited unit moves the extract to the kind that lists it")
+def an_edited_unit_moves_the_extract_to_the_kind_that_lists_it(reg):
     ident = "e.maple_2024.water_use"
     extract(reg, ident).update(unit="L", kind="k.volume")
     assert review.apply(reg, ident, "affirm", {"unit": "L/d"}, today="2026-10-29") == []
     assert (extract(reg, ident)["unit"], extract(reg, ident)["kind"]) == ("L/d", "k.volume_per_day")
 
 
-def test_the_check_page_lists_every_extract_with_its_page(reg):
+@then("the check page lists every extract with its page")
+def the_check_page_lists_every_extract_with_its_page(reg):
     rows = review.rows(reg)
     assert len(rows) == len(reg["extracts"])
     row = next(r for r in rows if r["id"] == "e.maple_2024.pump_energy")
     assert (row["page"], row["status"], row["short"]) == (10, "to-verify", "Maple and Oak (2024)")
 
 
-def test_fetch_names_itself_because_cloudflare_refuses_pythons_default(tmp_path, monkeypatch):
+@then("fetch names itself because cloudflare refuses pythons default")
+def fetch_names_itself_because_cloudflare_refuses_pythons_default(tmp_path, monkeypatch):
     """Storage is behind Cloudflare, which answers Python's own User-Agent with error 1010."""
     import io
     import urllib.request
@@ -208,7 +229,8 @@ def ask(port, method, target, body=None, **headers):
 FINDING = {"id": "e.maple_2024.pump_energy", "finding": "affirm"}
 
 
-def test_the_page_records_a_finding_from_itself(page):
+@then("the page records a finding from itself")
+def the_page_records_a_finding_from_itself(page):
     port, path = page
     status, _ = ask(port, "POST", "/api/check", FINDING, Origin=f"http://127.0.0.1:{port}", Content_Type="application/json")
     assert status == 200 and extract(json.loads(path.read_text()), FINDING["id"])["checked"]["finding"] == "affirm"
@@ -217,15 +239,22 @@ def test_the_page_records_a_finding_from_itself(page):
     assert status == 200
 
 
-@pytest.mark.parametrize("headers", [
+@then("a finding from anywhere else changes nothing")
+def a_finding_from_anywhere_else_changes_nothing(page):
+    """Every case of the parametrized test this was, in turn."""
+    for headers in [
     {"Origin": "https://evil.example", "Content_Type": "application/json"},
     {"Content_Type": "application/json"},  # no Origin at all
     {"Origin": "http://127.0.0.1:1", "Content_Type": "application/json"},  # another local port
     {"Origin": "PAGE", "Content_Type": "text/plain"},  # what a form may send without asking
     {"Origin": "PAGE"},
     {"Origin": "PAGE", "Content_Type": "application/json", "Host": "evil.example"},  # DNS rebinding
-])
-def test_a_finding_from_anywhere_else_changes_nothing(page, headers):
+]:
+        headers = headers.values[0] if type(headers).__name__ == "ParameterSet" else headers
+        _case_a_finding_from_anywhere_else_changes_nothing(headers=headers, page=page)
+
+
+def _case_a_finding_from_anywhere_else_changes_nothing(page, headers):
     port, path = page
     before = path.read_text()
     filled = {k: f"http://127.0.0.1:{port}" if v == "PAGE" else v for k, v in headers.items()}
@@ -233,21 +262,24 @@ def test_a_finding_from_anywhere_else_changes_nothing(page, headers):
     assert status == 403 and path.read_text() == before
 
 
-def test_another_host_reads_nothing(page):
+@then("another host reads nothing")
+def another_host_reads_nothing(page):
     port, _ = page
     assert ask(port, "GET", "/api/extracts", Host="evil.example")[0] == 403
     assert ask(port, "GET", "/", Host="evil.example")[0] == 403
     assert ask(port, "GET", "/api/extracts")[0] == 200
 
 
-def test_a_pdf_is_served_by_its_sha_and_a_miss_names_no_folder(page, tmp_path):
+@then("a pdf is served by its sha and a miss names no folder")
+def a_pdf_is_served_by_its_sha_and_a_miss_names_no_folder(page, tmp_path):
     port, _ = page
     assert ask(port, "GET", f"/pdf/{'a' * 64}.pdf") == (200, b"%PDF")
     status, body = ask(port, "GET", "/pdf/../../secret.pdf")
     assert status == 404 and str(tmp_path).encode() not in body and b"secret" not in body
 
 
-def test_upload_refuses_a_sha_that_is_not_one_before_reading_anything(reg, tmp_path, monkeypatch):
+@then("upload refuses a sha that is not one before reading anything")
+def upload_refuses_a_sha_that_is_not_one_before_reading_anything(reg, tmp_path, monkeypatch):
     reg["sources"][0]["file_sha256"] = "../../secret"
     (tmp_path.parent / "secret.pdf").write_bytes(b"not to be read")
     monkeypatch.setattr(sources, "registry", lambda *_: reg)
