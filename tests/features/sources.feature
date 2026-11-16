@@ -53,6 +53,9 @@ Feature: Paper extracts: the registry's shape, what is gathered, and the check p
   Scenario: The check page lists every extract with its page
     Then the check page lists every extract with its page
 
+  Scenario: Gathering signs checked extracts once
+    Then gathering signs checked extracts once
+
   Scenario: Fetch names itself because cloudflare refuses pythons default
     Then fetch names itself because cloudflare refuses pythons default
 

@@ -10,6 +10,7 @@ import copy
 import http.client
 import json
 import os
+import shutil
 import threading
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -177,6 +178,43 @@ def the_check_page_lists_every_extract_with_its_page(reg):
     assert len(rows) == len(reg["extracts"])
     row = next(r for r in rows if r["id"] == "e.maple_2024.pump_energy")
     assert (row["page"], row["status"], row["short"]) == (10, "to-verify", "Maple and Oak (2024)")
+
+
+def _pub() -> str | None:
+    pub = os.environ.get("PUB") or shutil.which("pub")
+    if not pub or not (Path(pub).parent / "pub-store").exists():
+        return None
+    return pub
+
+
+@then("gathering signs checked extracts once")
+def gathering_signs_checked_extracts_once(reg, tmp_path, monkeypatch):
+    """Drives a real pub with keys made for the test; skipped without one."""
+    pub = _pub()
+    if pub is None:
+        pytest.skip("needs pub and pub-store: set PUB or put them on PATH")
+    affirm(reg, "e.maple_2024.climate", "e.maple_2024.pump_energy")
+    path = tmp_path / "sources.json"
+    path.write_text(json.dumps(reg))
+    monkeypatch.setenv("PUB", pub)
+    monkeypatch.setenv("SOURCES_KEYS_DIR", str(tmp_path / "keys"))
+    monkeypatch.setenv("FACTS_NOW", "2026-11-01T00:00:00Z")
+    monkeypatch.setattr(gather, "OBJECTS", tmp_path / "objects")
+    monkeypatch.setattr(gather, "GATHERED", tmp_path / "gathered.json")
+
+    first = gather.gather(path)
+    recorded = gather.load_gathered()
+    assert set(recorded["keys"]) == {"extractor.claude", "reader.david"}
+    assert "e.maple_2024.pump_energy#verdict" in recorded["items"]
+    assert all(url is None for url in recorded["objects"].values())
+
+    again = gather.gather(path)
+    assert (again.compose, again.revise) == ([], []) and len(again.keep) == len(first.compose)
+
+    extract(reg, "e.maple_2024.pump_energy")["scope"] = "one pump running all day, as published"
+    path.write_text(json.dumps(reg))
+    revised = gather.gather(path)
+    assert "e.maple_2024.pump_energy" in revised.revise
 
 
 @then("fetch names itself because cloudflare refuses pythons default")
