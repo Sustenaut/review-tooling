@@ -1,4 +1,4 @@
-include pubkit-python.mk
+include pubrules-python.mk
 
 .PHONY: check
 
